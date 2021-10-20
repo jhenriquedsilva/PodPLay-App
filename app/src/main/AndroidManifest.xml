@@ -15,6 +15,7 @@
         <activity
             android:name=".ui.PodcastActivity"
             android:launchMode="singleTop"
+            android:theme="@style/Theme.Podplay.NoActionBar"
             android:exported="true">
 
             <intent-filter>

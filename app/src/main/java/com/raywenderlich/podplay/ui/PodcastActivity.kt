@@ -9,6 +9,7 @@ import android.util.Log
 import android.view.Menu
 import androidx.appcompat.widget.SearchView
 import com.raywenderlich.podplay.R
+import com.raywenderlich.podplay.databinding.ActivityPodcastBinding
 import com.raywenderlich.podplay.repository.ItunesRepo
 import com.raywenderlich.podplay.service.ItunesService
 import kotlinx.coroutines.GlobalScope
@@ -16,12 +17,33 @@ import kotlinx.coroutines.launch
 
 class PodcastActivity : AppCompatActivity() {
 
-    val TAG = javaClass.simpleName
+    private val TAG = javaClass.simpleName
+    private lateinit var binding: ActivityPodcastBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_podcast)
+        // How to create a view using databinding
+        binding = ActivityPodcastBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setupToolbar()
     }
+
+    private fun setupToolbar() {
+        // This method makes a toolbar act as an action bar
+        // for this Activity
+        setSupportActionBar(binding.toolbar)
+    }
+
+
+
+
+
+
+
+
+
+
+    // Searching a podcast feature
 
     // Creates the search icon
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -62,4 +84,6 @@ class PodcastActivity : AppCompatActivity() {
         setIntent(intent)
         handleIntent(intent as Intent)
     }
+
+    // End of searching a podcast feature
 }
