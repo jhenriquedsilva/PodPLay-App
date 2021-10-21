@@ -21,6 +21,7 @@
 
     <style name="Theme.Podplay.AppBarOverlay"
         parent="ThemeOverlay.AppCompat.Dark.ActionBar"/>
+
     <style name="Theme.Podplay.PopupOverlay"
         parent="ThemeOverlay.AppCompat.Light"/>
 </resources>

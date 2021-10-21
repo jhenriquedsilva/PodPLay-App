@@ -30,7 +30,7 @@ interface ItunesService {
          */
         val instance: ItunesService by lazy {
 
-            Retrofit.Builder()
+                Retrofit.Builder()
                 .baseUrl("https://itunes.apple.com")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
