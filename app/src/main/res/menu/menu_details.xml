@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- A menu item can appear as an action item only when the activity includes an app bar
+         This defines the content of a menu that displays when the details fragment is active
+         It contains a single item with the label Subscribe  -->
+    <item
+        android:id="menu_feed_action"
+        android:title="@string/subscribe"
+        app:showAsAction="ifRoom"/>
+</menu>
