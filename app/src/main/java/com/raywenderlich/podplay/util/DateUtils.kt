@@ -11,7 +11,7 @@ object DateUtils {
             return "-"
         }
 
-        val inFormat = SimpleDateFormat("dd-MM-yyyy'T'HH:mm:ss", Locale.getDefault())
+        val inFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
         val date = inFormat.parse(jsonDate) ?: return "_"
         val outputFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.getDefault())
 
