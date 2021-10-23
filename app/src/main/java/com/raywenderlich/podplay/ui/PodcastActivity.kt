@@ -64,6 +64,13 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
 
         searchView.setSearchableInfo(searchManager.getSearchableInfo(componentName))
 
+        // The podcast recycler view needs to be hidden when there is a
+        // configuration change. If the user is in the details fragment and
+        // and they rotate the device, the recycler view keeps hidden
+        if (supportFragmentManager.backStackEntryCount > 0) {
+            binding.podcastRecyclerView.visibility = View.INVISIBLE
+        }
+
         /**
          * As the fragment adds an action button to the menu, the menu is recreated
          * when the fragment is added. So it is necessary to make sure that the
