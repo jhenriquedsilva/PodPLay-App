@@ -1,5 +1,6 @@
 package com.raywenderlich.podplay.ui
 
+import androidx.appcompat.app.AlertDialog
 import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
@@ -7,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.widget.SearchView
@@ -16,7 +18,9 @@ import com.raywenderlich.podplay.R
 import com.raywenderlich.podplay.adapter.PodcastListAdapter
 import com.raywenderlich.podplay.databinding.ActivityPodcastBinding
 import com.raywenderlich.podplay.repository.ItunesRepo
+import com.raywenderlich.podplay.repository.PodcastRepo
 import com.raywenderlich.podplay.service.ItunesService
+import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 import com.raywenderlich.podplay.viewmodel.SearchViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -29,6 +33,9 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
     private lateinit var binding: ActivityPodcastBinding
     private val searchViewModel by viewModels<SearchViewModel>()
     private lateinit var podcastListAdapter: PodcastListAdapter
+    // Saves a reference to the search icon to hide it and retrieve it back later
+    private lateinit var searchMenuItem: MenuItem
+    private val podcastViewModel by viewModels<PodcastViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,63 +46,32 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         setupViewModels()
         updateControls()
         handleIntent(intent)
-    }
-
-    private fun setupToolbar() {
-        // This method makes a toolbar act as an action bar
-        // for this Activity
-        setSupportActionBar(binding.toolbar)
-    }
-
-    private fun setupViewModels() {
-        val service = ItunesService.instance
-        searchViewModel.iTunesRepo = ItunesRepo(service)
-    }
-
-    // Sets up the recycler view
-    private fun updateControls() {
-
-        binding.podcastRecyclerView.setHasFixedSize(true)
-
-        val layoutManager = LinearLayoutManager(this)
-        binding.podcastRecyclerView.layoutManager = layoutManager
-
-        val dividerItemDecoration = DividerItemDecoration(
-            binding.podcastRecyclerView.context,
-            layoutManager.orientation
-        )
-        binding.podcastRecyclerView.addItemDecoration(dividerItemDecoration)
-
-        podcastListAdapter = PodcastListAdapter(null, this, this)
-        binding.podcastRecyclerView.adapter = podcastListAdapter
-    }
-
-    // Should be called when a user taps on a podcast in the recycler view
-    override fun onShowDetails(podcastSummaryViewData: SearchViewModel.PodcastSummaryViewData) {
-        TODO("Not yet implemented")
-    }
-
-    private fun showProgressBar() {
-        binding.progressBar.visibility = View.VISIBLE
-    }
-
-    private fun hideProgressBar() {
-        binding.progressBar.visibility = View.INVISIBLE
+        addBackStackListener()
     }
 
 
-    // Searching a podcast feature
+    // Searching a podcast feature 1
 
     // Creates the search icon
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+
         menuInflater.inflate(R.menu.menu_search, menu)
 
-        val searchMenuItem = menu?.findItem(R.id.search_item)
-        val searchView = searchMenuItem?.actionView as SearchView
+        searchMenuItem = menu.findItem(R.id.search_item)
+        val searchView = searchMenuItem.actionView as SearchView
 
         var searchManager = getSystemService(Context.SEARCH_SERVICE) as SearchManager
 
         searchView.setSearchableInfo(searchManager.getSearchableInfo(componentName))
+
+        /**
+         * As the fragment adds an action button to the menu, the menu is recreated
+         * when the fragment is added. So it is necessary to make sure that the
+         * searchMenuItem remains invisible while the recyclerView is invisible
+         */
+        if (binding.podcastRecyclerView.visibility == View.INVISIBLE) {
+            searchMenuItem.isVisible = false
+        }
 
         return true
     }
@@ -137,4 +113,135 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
     }
 
     // End of searching a podcast feature
+
+
+
+
+
+    // Showing the podcast results to the user feature 2
+
+    private fun setupToolbar() {
+        // This method makes a toolbar act as an action bar
+        // for this Activity
+        setSupportActionBar(binding.toolbar)
+    }
+
+    private fun setupViewModels() {
+        // The repos are set up when the activity is created
+        val service = ItunesService.instance
+        searchViewModel.iTunesRepo = ItunesRepo(service)
+
+        podcastViewModel.podcastRepo = PodcastRepo()
+    }
+
+    // Sets up the recycler view
+    private fun updateControls() {
+
+        binding.podcastRecyclerView.setHasFixedSize(true)
+
+        val layoutManager = LinearLayoutManager(this)
+        binding.podcastRecyclerView.layoutManager = layoutManager
+
+        val dividerItemDecoration = DividerItemDecoration(
+            binding.podcastRecyclerView.context,
+            layoutManager.orientation
+        )
+        binding.podcastRecyclerView.addItemDecoration(dividerItemDecoration)
+
+        podcastListAdapter = PodcastListAdapter(null, this, this)
+        binding.podcastRecyclerView.adapter = podcastListAdapter
+    }
+
+    // Should be called when a user taps on a podcast in the recycler view
+    override fun onShowDetails(podcastSummaryViewData: SearchViewModel.PodcastSummaryViewData) {
+        val feedUrl = podcastSummaryViewData.feedUrl ?: return
+
+        showProgressBar()
+        val podcast = podcastViewModel.getPodcast(podcastSummaryViewData)
+        hideProgressBar()
+
+        if (podcast != null) {
+            showDetailsFragment()
+        } else {
+            showError("Error loading feed $feedUrl")
+        }
+    }
+
+    // If there is an error, this method gets called
+    private fun showError(message: String) {
+        AlertDialog.Builder(this)
+            .setMessage(message)
+            .setPositiveButton(getString(R.string.ok_button), null)
+            .create()
+            .show()
+    }
+
+    private fun showProgressBar() {
+        binding.progressBar.visibility = View.VISIBLE
+    }
+
+    private fun hideProgressBar() {
+        binding.progressBar.visibility = View.INVISIBLE
+    }
+
+    // End of showing the podcasts to the user
+
+
+
+
+    // Showing the details screen to the user 3
+
+    // It is necessary to know when the fragment is closed
+    // to make the recyclerView visible again
+    private fun addBackStackListener() {
+        // This lambda responds to changes inn the Fragment backstack
+        // It's called when fragments are added or removed from the stack
+        supportFragmentManager.addOnBackStackChangedListener {
+            // When backStackEntryCount is 0, all Fragments have been
+            // removed
+            if (supportFragmentManager.backStackEntryCount == 0) {
+                binding.podcastRecyclerView.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun createPodcastDetailsFragment(): PodcastDetailsFragment {
+
+        // This checks if the fragment already exists
+        var podcastDetailsFragment  = supportFragmentManager
+            .findFragmentByTag(TAG_DETAILS_FRAGMENT) as PodcastDetailsFragment?
+
+        if (podcastDetailsFragment == null) {
+            // Create one if it does not exist
+            podcastDetailsFragment = PodcastDetailsFragment.newInstance()
+        }
+
+        return podcastDetailsFragment
+    }
+
+    // Displays the details fragment
+    private fun showDetailsFragment() {
+
+        val podcastDetailsFragment = createPodcastDetailsFragment()
+
+        supportFragmentManager.beginTransaction().add(
+            R.id.podcastDetailsContainer,
+            podcastDetailsFragment,
+            TAG_DETAILS_FRAGMENT
+        )   // Calling this function makes sure that the back button works to close the fragment
+            // If you do not add this and press the back button, the app will close
+            .addToBackStack("DetailsFragment").commit()
+
+        // Still takes up space
+        binding.podcastRecyclerView.visibility =  View.INVISIBLE
+        // Hides the search menu
+        searchMenuItem.isVisible = false
+    }
+
+    // End of showing the details screen to the user 3
+
+    companion object {
+        // This tag uniquely identifies the details Fragment in the Fragment Manager
+        private const val TAG_DETAILS_FRAGMENT = "DetailsFragment"
+    }
 }

@@ -7,7 +7,7 @@
          This defines the content of a menu that displays when the details fragment is active
          It contains a single item with the label Subscribe  -->
     <item
-        android:id="menu_feed_action"
+        android:id="@+id/menu_feed_action"
         android:title="@string/subscribe"
         app:showAsAction="ifRoom"/>
 </menu>
