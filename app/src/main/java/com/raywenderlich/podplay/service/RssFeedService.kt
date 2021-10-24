@@ -1,6 +1,8 @@
 package com.raywenderlich.podplay.service
 
 import com.raywenderlich.podplay.BuildConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
@@ -10,9 +12,11 @@ import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.Url
 import java.util.concurrent.TimeUnit
+import javax.xml.parsers.DocumentBuilderFactory
 
 class RssFeedService private constructor() {
 
+    // Reads the RSS file into a Document object
     suspend fun getFeed(xmlFileURL: String): RssFeedResponse? {
         var service: FeedService
 
@@ -42,9 +46,15 @@ class RssFeedService private constructor() {
                 return null
             } else {
                 var rssFeedResponse: RssFeedResponse? = null
-                // return success result
-                println(result.body()?.string())
-                // TODO: parse response
+
+                // Parsing occurs over here
+                val dbFactory = DocumentBuilderFactory.newInstance()
+                val dBuilder = dbFactory.newDocumentBuilder()
+                withContext(Dispatchers.IO)  {
+                    val doc = dBuilder.parse(result.body()?.byteStream())
+                }
+                // Finishes over here
+
                 return rssFeedResponse
             }
         } catch (t: Throwable) {
