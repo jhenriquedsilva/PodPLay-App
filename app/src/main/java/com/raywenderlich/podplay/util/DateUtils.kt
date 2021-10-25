@@ -2,7 +2,7 @@ package com.raywenderlich.podplay.util
 
 import java.text.DateFormat
 import java.text.SimpleDateFormat
-import java.util.Locale
+import java.util.*
 
 object DateUtils {
 
@@ -16,5 +16,12 @@ object DateUtils {
         val outputFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.getDefault())
 
         return outputFormat.format(date)
+    }
+
+    // This converts a date string found in the RSS XML feed to a Date object
+    fun xmlDateToDate(dateString: String?): Date {
+        val date = dateString ?: return Date()
+        val inFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.getDefault())
+        return inFormat.parse(date) ?: Date()
     }
 }

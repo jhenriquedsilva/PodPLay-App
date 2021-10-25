@@ -1,11 +1,13 @@
 package com.raywenderlich.podplay.service
 
 import com.raywenderlich.podplay.BuildConfig
+import com.raywenderlich.podplay.util.DateUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
+import org.w3c.dom.Node
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.http.GET
@@ -15,6 +17,30 @@ import java.util.concurrent.TimeUnit
 import javax.xml.parsers.DocumentBuilderFactory
 
 class RssFeedService private constructor() {
+
+    // Turns the Document object into an RssFeedResponse
+    private fun domToRssFeedResponse(node: Node, rssFeedResponse: RssFeedResponse) {
+        // Checks if it is an XML element
+        if (node.nodeType == Node.ELEMENT_NODE) {
+            val nodeName = node.nodeName
+            val parentName = node.parentNode.nodeName
+
+            if (parentName == "channel") {
+                when (nodeName) {
+                    "title" ->  rssFeedResponse.title = node.textContent
+                    "description" -> rssFeedResponse.description = node.textContent
+                    "itunes:summary" -> rssFeedResponse.summary = node.textContent
+                    "item" -> rssFeedResponse.episodes?.add(RssFeedResponse.EpisodeResponse())
+                    "pubDate" -> rssFeedResponse.lastUpdated = DateUtils.xmlDateToDate(node.textContent)
+                }
+            }
+        }
+        val nodeList = node.childNodes
+        for (i in 0 until nodeList.length) {
+            val childNode  = nodeList.item(i)
+            domToRssFeedResponse(childNode, rssFeedResponse)
+        }
+    }
 
     // Reads the RSS file into a Document object
     suspend fun getFeed(xmlFileURL: String): RssFeedResponse? {
