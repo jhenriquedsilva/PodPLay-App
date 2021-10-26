@@ -25,6 +25,8 @@ class RssFeedService private constructor() {
             val nodeName = node.nodeName
             val parentName = node.parentNode.nodeName
 
+            // If the current node is a child of the channel node
+            //
             if (parentName == "channel") {
                 when (nodeName) {
                     "title" ->  rssFeedResponse.title = node.textContent
@@ -35,6 +37,7 @@ class RssFeedService private constructor() {
                 }
             }
         }
+
         val nodeList = node.childNodes
         for (i in 0 until nodeList.length) {
             val childNode  = nodeList.item(i)
@@ -44,6 +47,8 @@ class RssFeedService private constructor() {
 
     // Reads the RSS file into a Document object
     suspend fun getFeed(xmlFileURL: String): RssFeedResponse? {
+
+        // The interface is bellow
         var service: FeedService
 
         val interceptor = HttpLoggingInterceptor()
@@ -60,24 +65,36 @@ class RssFeedService private constructor() {
         }
         client.build()
 
+        // Treats the baseUrl construction to avoid problems with Retroif2
         var retrofit = Retrofit.Builder()
             .baseUrl("${xmlFileURL.split("?")[0]}/")
             .build()
+
         service = retrofit.create(FeedService::class.java)
 
         try {
             val result = service.getFeed(xmlFileURL)
+            // If the code is equal to or greater than 400, this means there is an error
             if (result.code() >= 400) {
                 println("server error, ${result.code()}, ${result.errorBody()}")
                 return null
             } else {
+
                 var rssFeedResponse: RssFeedResponse? = null
 
                 // Parsing occurs over here
+                // Retrofit is not good at parsing XML
                 val dbFactory = DocumentBuilderFactory.newInstance()
                 val dBuilder = dbFactory.newDocumentBuilder()
                 withContext(Dispatchers.IO)  {
+                    // ResponseBody = A one-shot stream from the origin server
+                    // to the client application with the raw bytes of the response body
+                    // Parses the XML into a document
                     val doc = dBuilder.parse(result.body()?.byteStream())
+                    val rss = RssFeedResponse(episodes = mutableListOf())
+                    domToRssFeedResponse(doc, rss)
+                    println(rss)
+                    rssFeedResponse = rss
                 }
                 // Finishes over here
 
@@ -105,7 +122,7 @@ interface FeedService {
         "Content-Type: application/xml; charset=utf-8",
         "Accept: application/xml"
     )
-    @GET
+    @GET // Gets a URL pointing to the RSS file
     suspend fun getFeed(@Url xmlFileUrl: String): Response<ResponseBody>
 
 }

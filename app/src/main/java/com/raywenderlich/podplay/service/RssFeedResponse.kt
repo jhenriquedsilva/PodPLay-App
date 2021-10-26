@@ -3,6 +3,7 @@ package com.raywenderlich.podplay.service
 import java.util.Date
 
 // Holds the parsed RSS feed response
+
 data class RssFeedResponse(
     var title : String = "",
     var description : String = "",
