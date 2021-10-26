@@ -12,7 +12,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PodPlay"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"> <!-- Allow the app to use URLs that starts with HTTP -->
         <activity
             android:name=".ui.PodcastActivity"
             android:launchMode="singleTop"
