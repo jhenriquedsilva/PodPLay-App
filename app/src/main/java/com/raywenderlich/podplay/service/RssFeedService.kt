@@ -25,8 +25,33 @@ class RssFeedService private constructor() {
             val nodeName = node.nodeName
             val parentName = node.parentNode.nodeName
 
+            val grandParentName = node.parentNode.parentNode?.nodeName ?: ""
+
+            // This part parses each episode item
+            if (parentName == "item" && grandParentName == "channel") {
+                // 3
+                val currentItem = rssFeedResponse.episodes?.last()
+
+                if (currentItem != null) {
+                    // 4
+                    when (nodeName) {
+                        "title" -> currentItem.title = node.textContent
+                        "description" -> currentItem.description = node.textContent
+                        "itunes:duration" -> currentItem.duration = node.textContent
+                        "guid" -> currentItem.guid = node.textContent
+                        "pubDate" -> currentItem.pubDate = node.textContent
+                        "link" -> currentItem.link = node.textContent
+                        "enclosure" -> {
+                            currentItem.url = node.attributes.getNamedItem("url").textContent
+                            currentItem.type = node.attributes.getNamedItem("type").textContent
+                        }
+                    }
+                }
+            }
+            // End of episode parsing
+
+
             // If the current node is a child of the channel node
-            //
             if (parentName == "channel") {
                 when (nodeName) {
                     "title" ->  rssFeedResponse.title = node.textContent
