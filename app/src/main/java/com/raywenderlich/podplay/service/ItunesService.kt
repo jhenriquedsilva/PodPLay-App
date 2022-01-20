@@ -8,7 +8,16 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 /**
+ * Retrofit is good because it does the backgroound task andd lets you concentrate
+ * on writing functionalities
+ */
+
+/**
  * This interface is a direct representation of the API that is accessed
+ */
+
+/**
+ * This service is called when the user searches for podcasts
  */
 interface ItunesService {
 
