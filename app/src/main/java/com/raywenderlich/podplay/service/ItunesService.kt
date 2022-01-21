@@ -8,25 +8,31 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 /**
- * Retrofit is good because it does the backgroound task andd lets you concentrate
+ * Retrofit is good because it does the background task and lets you concentrate
  * on writing functionalities
- */
-
-/**
- * This interface is a direct representation of the API that is accessed
  */
 
 /**
  * This service is called when the user searches for podcasts
  */
+
+/**
+ * THIS INTERFACE IS A DIRECT REPRESENTATION OF THE API THAT YOU'RE ACCESSING
+ */
 interface ItunesService {
 
-    // https://itunes.apple.com/search?term=Android+Developer&media=podcast
-    // Function annotation. Applies to a function
-    // @param: The path to the endpoint that should be called
+    /**
+     * Retrofit URL-encodes automatically the queries
+     */
+    // The GET annotation takes only one param: the path to the endpoint that should be called
     @GET("/search?media=podcast")
+    // Query indicates that the parameter should be added as query term to the endpoint
     suspend fun searchPodcastByTerm(@Query("term") term: String): Response<PodcastResponse>
 
+    /**
+     * This code not necessarily needs to be over here. BBut it was allocated here through a
+     * companion object
+     */
     companion object {
 
         /**
@@ -39,11 +45,16 @@ interface ItunesService {
          */
         val instance: ItunesService by lazy {
 
-                Retrofit.Builder()
+            /**
+             * Creates a concrete implementation of the interface
+             * and Retrofit supplies the method bodies
+             */
+            Retrofit.Builder()
                 .baseUrl("https://itunes.apple.com")
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create()) // Creates an instance of GsonConverterFactory
                 .build()
                 .create(ItunesService::class.java)
         }
     }
+
 }

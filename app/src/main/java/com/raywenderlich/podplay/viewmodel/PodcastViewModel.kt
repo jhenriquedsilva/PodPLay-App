@@ -2,9 +2,13 @@ package com.raywenderlich.podplay.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
 import com.raywenderlich.podplay.model.Episode
 import com.raywenderlich.podplay.model.Podcast
 import com.raywenderlich.podplay.repository.PodcastRepo
+import kotlinx.coroutines.launch
 import java.util.Date
 
 /**
@@ -15,24 +19,25 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
 
     var podcastRepo: PodcastRepo? = null // Set by the caller
     var activePodcastViewData: PodcastViewData? = null // Holds the most recently loaded podcast view data
+    private val _podcastLiveData = MutableLiveData<PodcastViewData?>()
+    val podcastLiveData: LiveData<PodcastViewData?> = _podcastLiveData
 
     // Retrieves the podcast from the repo
-    fun getPodcast(podcastSummaryViewData: SearchViewModel.PodcastSummaryViewData): PodcastViewData? {
-        val repo = podcastRepo ?: return null
-        val feedUrl = podcastSummaryViewData.feedUrl ?: return null
+    fun getPodcast(podcastSummaryViewData: SearchViewModel.PodcastSummaryViewData) {
 
-        // Already have feed URL
-        val podcast = repo.getPodcast(feedUrl)
-
-        podcast?.let { podcast ->
-            podcast.feedTitle = podcastSummaryViewData.name ?: ""
-            podcast.imageUrl = podcastSummaryViewData.imageUrl ?: ""
-            activePodcastViewData = podcastToPodcastView(podcast)
-            // This podcast does not have description yet
-            return activePodcastViewData
+        val feedUrl = podcastSummaryViewData.feedUrl?.let { url ->
+            viewModelScope.launch {
+                podcastRepo?.getPodcast(url)?.let { podcast ->
+                    podcast.feedTitle = podcastSummaryViewData.name ?: ""
+                    podcast.imageUrl = podcastSummaryViewData.imageUrl ?: ""
+                    _podcastLiveData.value = podcastToPodcastView(podcast)
+                } ?: run {
+                    _podcastLiveData.value = null
+                }
+            }
+        } ?: run {
+            _podcastLiveData.value = null
         }
-        // If no podcast is retrieved
-        return null
     }
 
     /**
