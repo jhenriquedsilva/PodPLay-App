@@ -13,6 +13,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PodPlay"
         android:usesCleartextTraffic="true"> <!-- Allow the app to use URLs that starts with HTTP -->
+
         <activity
             android:name=".ui.PodcastActivity"
             android:launchMode="singleTop"
@@ -27,8 +28,8 @@
 
             <meta-data android:name="android.app.searchable"
                 android:resource="@xml/searchable"/>
-
         </activity>
+
     </application>
 
 </manifest>
