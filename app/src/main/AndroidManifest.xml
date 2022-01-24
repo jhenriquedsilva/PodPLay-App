@@ -19,9 +19,11 @@
             android:launchMode="singleTop"
             android:theme="@style/Theme.Podplay.NoActionBar"
             android:exported="true">
+            <!-- It's not necessary to create another activity if this is already on top -->
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+                <!-- Makes the activity searchable -->
                 <action android:name="android.intent.action.SEARCH"/>
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>

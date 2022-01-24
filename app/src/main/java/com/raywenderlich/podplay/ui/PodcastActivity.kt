@@ -21,6 +21,7 @@ import com.raywenderlich.podplay.repository.ItunesRepo
 import com.raywenderlich.podplay.repository.PodcastRepo
 import com.raywenderlich.podplay.service.FeedService
 import com.raywenderlich.podplay.service.ItunesService
+import com.raywenderlich.podplay.service.RssFeedService
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 import com.raywenderlich.podplay.viewmodel.SearchViewModel
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +45,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         binding = ActivityPodcastBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupToolbar()
+
         setupViewModels()
         updateControls()
         handleIntent(intent)
@@ -57,12 +59,15 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
 
         menuInflater.inflate(R.menu.menu_search, menu)
-
+        // The search action menu is found
         searchMenuItem = menu.findItem(R.id.search_item)
+        // The search view is taken from the item's action view
         val searchView = searchMenuItem.actionView as SearchView
 
+        // Used to load the searchable info XML file created
         var searchManager = getSystemService(Context.SEARCH_SERVICE) as SearchManager
 
+        // searchManager is used to set the search configuration
         searchView.setSearchableInfo(searchManager.getSearchableInfo(componentName))
 
         // The podcast recycler view needs to be hidden when there is a
@@ -83,6 +88,8 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
 
         return true
     }
+
+    // These methods perform the actual search
 
     // Create the network request
     private fun performSearch(term: String) {
@@ -107,11 +114,13 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         if (Intent.ACTION_SEARCH == intent.action) {
             // SearchManager.QUERY returns the text entered by the user
             val query = intent.getStringExtra(SearchManager.QUERY) ?: return
+            // If the search term is not null, make the call
             performSearch(query)
         }
     }
 
-    // Called when the Intent is sent from the search widget
+    // Called when the Intent is sent from the search widget, that is,
+    // when there is a search
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         // This saves the intent to be used again
@@ -129,8 +138,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
     // Showing the podcast results to the user feature 2
 
     private fun setupToolbar() {
-        // This method makes a toolbar act as an action bar
-        // for this Activity
+        // This method makes a toolbar act as an action bar for this Activity
         setSupportActionBar(binding.toolbar)
     }
 

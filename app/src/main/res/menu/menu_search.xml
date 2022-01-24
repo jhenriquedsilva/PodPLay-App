@@ -12,5 +12,7 @@
         android:icon="@android:drawable/ic_menu_search"
         app:showAsAction="collapseActionView|ifRoom"
         app:actionViewClass="androidx.appcompat.widget.SearchView"/>
+        <!-- When and how this item should appear as an action item in the app bar -->
+        <!-- A fully-qualified class name for the View to use as the action view -->
         <!-- This attribute adds a action view class -->
 </menu>
