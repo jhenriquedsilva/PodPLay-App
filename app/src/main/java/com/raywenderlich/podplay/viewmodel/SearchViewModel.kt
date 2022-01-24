@@ -20,11 +20,12 @@ class SearchViewModel(application: Application): AndroidViewModel(application) {
 
         // 3
         if (results != null && results.isSuccessful) {
-            // Body returns the objects
+            // Results is only the list
             val podcasts = results.body()?.results
             // Check if the podcasts list is not empty
             // Returns true if the list is either null or empty
             if (!podcasts.isNullOrEmpty()) {
+                // The list has to be values to be mapped
                 // Convert each raw podcast to a view podcast
                 return podcasts.map { podcast ->
                     itunesPodcastToPodcastSummaryView(podcast)
