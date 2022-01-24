@@ -14,14 +14,17 @@
         <!-- Customize your theme here. -->
     </style>
 
+    <!-- Tells the system not to include the system action bar -->
     <style name="Theme.Podplay.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>
 
+    <!-- Style for the app bar layout -->
     <style name="Theme.Podplay.AppBarOverlay"
         parent="ThemeOverlay.AppCompat.Dark.ActionBar"/>
 
+    <!-- Style for the toolbar -->
     <style name="Theme.Podplay.PopupOverlay"
         parent="ThemeOverlay.AppCompat.Light"/>
 </resources>
