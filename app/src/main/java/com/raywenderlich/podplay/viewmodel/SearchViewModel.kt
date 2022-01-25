@@ -18,7 +18,7 @@ class SearchViewModel(application: Application): AndroidViewModel(application) {
 
         val results = iTunesRepo?.searchByTerm(term)
 
-        // 3
+
         if (results != null && results.isSuccessful) {
             // Results is only the list
             val podcasts = results.body()?.results
@@ -32,7 +32,7 @@ class SearchViewModel(application: Application): AndroidViewModel(application) {
                 }
             }
         }
-        // 7
+
         return emptyList()
     }
 
