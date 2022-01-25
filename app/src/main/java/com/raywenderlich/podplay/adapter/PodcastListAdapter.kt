@@ -11,7 +11,9 @@ import com.raywenderlich.podplay.databinding.SearchItemBinding
 import com.raywenderlich.podplay.viewmodel.SearchViewModel.PodcastSummaryViewData
 
 class PodcastListAdapter(
+    // List with element to be shown on screen
     private var podcastSummaryViewList: List<PodcastSummaryViewData>?,
+    // When an item is clicked, the principal activity should show it
     private val podcastListAdapterListener: PodcastListAdapterListener,
     private val parentActivity: Activity
 ): RecyclerView.Adapter<PodcastListAdapter.PodcastViewHolder>() {
@@ -23,6 +25,7 @@ class PodcastListAdapter(
 
     // It can access the members of the outer class
     inner class PodcastViewHolder(
+        // That's the layout
         databinding: SearchItemBinding,
         private val podcastListAdapterListener: PodcastListAdapterListener
     ): RecyclerView.ViewHolder(databinding.root) {
@@ -33,7 +36,8 @@ class PodcastListAdapter(
         val podcastImageView: ImageView = databinding.podcastImage
 
         init {
-            // Sets a listener on each item in the recycler view
+            // Everytime a viewholder is created, aa click listener is added to it
+            // When each element is clicked, something will happen
             databinding.searchItem.setOnClickListener {
                 podcastSummaryViewData?.let { podcastSummaryViewData ->
                     podcastListAdapterListener.onShowDetails(podcastSummaryViewData)
@@ -70,6 +74,8 @@ class PodcastListAdapter(
         holder.nameTextView.text = searchView.name
         holder.lastUpdatedTextView.text = searchView.lastUpdated
 
+        // Glide performs on-demand loading in the background and do intelligent caching to keep
+        // the most recently loaded images ready for quick retrieval
         // Specific to load the images
         Glide.with(parentActivity) // Tied to the parent activity lifecycle
             .load(searchView.imageUrl)
