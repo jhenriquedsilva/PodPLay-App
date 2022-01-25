@@ -45,7 +45,6 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         binding = ActivityPodcastBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupToolbar()
-
         setupViewModels()
         updateControls()
         handleIntent(intent)
@@ -98,7 +97,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         GlobalScope.launch {
             // List with ready-to-use podcasts
             val results = searchViewModel.searchPodcasts(term)
-            // Changes to the main thread again
+            // Switches to the UI tread again
             withContext(Dispatchers.Main) {
                 hideProgressBar()
                 binding.toolbar.title = term
@@ -147,7 +146,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         val service = ItunesService.instance
         searchViewModel.iTunesRepo = ItunesRepo(service)
 
-        podcastViewModel.podcastRepo = PodcastRepo(FeedService.instance)
+      //  podcastViewModel.podcastRepo = PodcastRepo(FeedService.instance)
     }
 
     // Sets up the recycler view
@@ -168,7 +167,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         binding.podcastRecyclerView.adapter = podcastListAdapter
     }
 
-    // Should be called when a user taps on a podcast in the recycler view
+    // It's called when a user taps on a podcast in the recycler view
     override fun onShowDetails(podcastSummaryViewData: SearchViewModel.PodcastSummaryViewData) {
 
         val feedUrl = podcastSummaryViewData.feedUrl?.let {
