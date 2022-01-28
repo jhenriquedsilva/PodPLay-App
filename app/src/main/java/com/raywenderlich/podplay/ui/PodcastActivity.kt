@@ -12,6 +12,7 @@ import android.view.MenuItem
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.widget.SearchView
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.raywenderlich.podplay.R
@@ -24,10 +25,7 @@ import com.raywenderlich.podplay.service.ItunesService
 import com.raywenderlich.podplay.service.RssFeedService
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 import com.raywenderlich.podplay.viewmodel.SearchViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 
 class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapterListener {
 
@@ -94,10 +92,12 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
     private fun performSearch(term: String) {
         // Starts fetching data
         showProgressBar()
-        GlobalScope.launch {
+        // Coroutine attached to the lifecycle of this activity
+        lifecycleScope.launch {
             // List with ready-to-use podcasts
             val results = searchViewModel.searchPodcasts(term)
-            // Switches to the UI tread again
+            // withContext is used to change which thread the coroutine is running in
+            // in this case, changindd to UI thread
             withContext(Dispatchers.Main) {
                 hideProgressBar()
                 binding.toolbar.title = term
@@ -106,6 +106,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
             }
             // Log.i(TAG, "Results = ${results.body()}")
         }
+
     }
 
     // Gets the search term
