@@ -27,9 +27,11 @@ class SearchViewModel(application: Application): AndroidViewModel(application) {
             if (!podcasts.isNullOrEmpty()) {
                 // The list has to be values to be mapped
                 // Convert each raw podcast to a view podcast
-                return podcasts.map { podcast ->
+                val itunesPodcastList = podcasts.map { podcast ->
                     itunesPodcastToPodcastSummaryView(podcast)
                 }
+
+                return itunesPodcastList
             }
         }
 

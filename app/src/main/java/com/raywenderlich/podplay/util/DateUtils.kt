@@ -6,15 +6,19 @@ import java.util.*
 
 object DateUtils {
 
+    // Format a string that the JSON serves
     fun jsonDateToShortDate(jsonDate: String?): String {
         if (jsonDate == null) {
             return "-"
         }
 
+        // Creates a simpleDateFormat following this pattern
         val inFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-        val date = inFormat.parse(jsonDate) ?: return "_"
+        // The date should be transformed to an object to be passed to last function
+        val date = inFormat.parse(jsonDate) ?: return "-"
+        // Get the format to be shown on screen
         val outputFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.getDefault())
-
+        // The string date is returned in a good format
         return outputFormat.format(date)
     }
 

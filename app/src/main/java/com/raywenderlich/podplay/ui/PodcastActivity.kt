@@ -124,7 +124,8 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         // This saves the intent to be used again
-        // when there is a configuration change
+        // when the language is changed or when the
+        // device is rotated
         setIntent(intent)
         handleIntent(intent)
     }
