@@ -3,6 +3,7 @@ package com.raywenderlich.podplay.ui
 import android.os.Bundle
 import android.view.*
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.activityViewModels
 import com.bumptech.glide.Glide
 import com.raywenderlich.podplay.R
@@ -12,11 +13,7 @@ import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 class PodcastDetailsFragment: Fragment() {
 
     private lateinit var databinding: FragmentPodcastDetailsBinding
-    // activityViewModels() is an extension function that allows the fragment
-    // to access and share view models from the fragment's parent activity
-    // They can share the same data. When the fragment is attached to the activity it
-    // will automatically assign podcastViewModel to the already initialized parent
-    // activity's podcastViewModel
+    // activityViewModels() provides the same activity that was initialized in the parent activity
     private val podcastViewModel: PodcastViewModel by  activityViewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,6 +32,7 @@ class PodcastDetailsFragment: Fragment() {
         return databinding.root
     }
 
+    // After the vire is created, the data is loaded
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         // This method is called here to make sure that the podcast view data
@@ -50,19 +48,23 @@ class PodcastDetailsFragment: Fragment() {
         inflater.inflate(R.menu.menu_details,menu)
     }
 
+    // Setting thr UI data
     private fun updateControls() {
         // Gets the data from the view model and populates the layout
-        val viewData = podcastViewModel.activePodcastViewData ?: return
-        databinding.feedTitleTextView.text = viewData.feedTitle
-        databinding.feedDescTextView.text = viewData.feedDesc
-        activity?.let { activity ->
-            Glide.with(activity).load(viewData.imageUrl).into(databinding.feedImageView)
+        if (podcastViewModel.activePodcastViewData != null) {
+            val viewData = podcastViewModel.activePodcastViewData as PodcastViewModel.PodcastViewData
+            databinding.feedTitleTextView.text = viewData.feedTitle
+            databinding.feedDescTextView.text = viewData.feedDesc
+            // Gets the parent activity to associate with Glide
+            if (activity != null) { Glide.with(activity as FragmentActivity).load(viewData.imageUrl).into(databinding.feedImageView)}
+        } else {
+            return
         }
+
     }
 
     companion object {
-        fun newInstance(): PodcastDetailsFragment {
-            return PodcastDetailsFragment()
-        }
+        // That's a static function
+        fun newInstance(): PodcastDetailsFragment { return PodcastDetailsFragment() }
     }
 }

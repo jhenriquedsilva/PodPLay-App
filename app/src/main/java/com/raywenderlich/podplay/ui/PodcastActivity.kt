@@ -33,8 +33,11 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
     private lateinit var binding: ActivityPodcastBinding
     private val searchViewModel by viewModels<SearchViewModel>()
     private lateinit var podcastListAdapter: PodcastListAdapter
-    // Saves a reference to the search icon to hide it and retrieve it back later
+    // Saves a reference to the search icon to hide it when the activity
+    // is created and and retrieve it back later when the activity is destroyed
+    // That's the only reason for this property
     private lateinit var searchMenuItem: MenuItem
+    // Used to hold the podcast view data
     private val podcastViewModel by viewModels<PodcastViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -129,7 +132,6 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         setIntent(intent)
         handleIntent(intent)
     }
-
     // End of searching a podcast feature
 
 
@@ -137,7 +139,6 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
 
 
     // Showing the podcast results to the user feature 2
-
     private fun setupToolbar() {
         // This method makes a toolbar act as an action bar for this Activity
         setSupportActionBar(binding.toolbar)
@@ -148,7 +149,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         val service = ItunesService.instance
         searchViewModel.iTunesRepo = ItunesRepo(service)
 
-      //  podcastViewModel.podcastRepo = PodcastRepo(FeedService.instance)
+        podcastViewModel.podcastRepo = PodcastRepo()
     }
 
     // Sets up the recycler view
@@ -171,7 +172,18 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
 
     // It's called when a user taps on a podcast in the recycler view
     override fun onShowDetails(podcastSummaryViewData: SearchViewModel.PodcastSummaryViewData) {
-
+        // This implementation probably will be changed
+        /*
+        val feedUrl = podcastSummaryViewData.feedUrl ?: return
+        showProgressBar()
+        val podcast = podcastViewModel.getPodcast(feedUrl)
+        hideProgressBar()
+        if (podcast != null)  {
+            showDetailsFragment()
+        } else {
+            showError("Error loading feed $feedUrl")
+        }
+        */
         val feedUrl = podcastSummaryViewData.feedUrl?.let {
             showProgressBar()
             podcastViewModel.getPodcast(podcastSummaryViewData)
@@ -179,17 +191,18 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
     }
 
     private fun createSubscription() {
-        podcastViewModel.podcastLiveData.observe(this, {
+        podcastViewModel.podcastLiveData.observe(this) {
             hideProgressBar()
             if (it != null) {
                 showDetailsFragment()
             } else {
                 showError("Error loading feed")
             }
-        })
+        }
     }
 
     // If there is an error, this method gets called
+    // to handle all error cases
     private fun showError(message: String) {
         AlertDialog.Builder(this)
             .setMessage(message)
@@ -212,27 +225,27 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
 
 
     // Showing the details screen to the user 3
-
     // It is necessary to know when the fragment is closed
     // to make the recyclerView visible again
     private fun addBackStackListener() {
-        // This lambda responds to changes inn the Fragment backstack
-        // It's called when fragments are added or removed from the stack
+
+        // This lambda expression is called everytime fragments are added or removed from the stack
         supportFragmentManager.addOnBackStackChangedListener {
-            // When backStackEntryCount is 0, all Fragments have been
-            // removed
+            // When backStackEntryCount is 0, all Fragments have been removed
             if (supportFragmentManager.backStackEntryCount == 0) {
                 binding.podcastRecyclerView.visibility = View.VISIBLE
             }
         }
     }
 
+    // OOnly creates a Fragment
     private fun createPodcastDetailsFragment(): PodcastDetailsFragment {
 
         // This checks if the fragment already exists
         var podcastDetailsFragment  = supportFragmentManager
             .findFragmentByTag(TAG_DETAILS_FRAGMENT) as PodcastDetailsFragment?
 
+        // If there's no no existing Fragment, create a new one
         if (podcastDetailsFragment == null) {
             // Create one if it does not exist
             podcastDetailsFragment = PodcastDetailsFragment.newInstance()
@@ -250,11 +263,11 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
             R.id.podcastDetailsContainer,
             podcastDetailsFragment,
             TAG_DETAILS_FRAGMENT
-        )   // Calling this function makes sure that the back button works to close the fragment
-            // If you do not add this and press the back button, the app will close
+        )   // Calling addToBackStack() makes sure that the back button works to close the fragment
+            // If you do not add the fragment to back stack and press the back button, the app will close
             .addToBackStack("DetailsFragment").commit()
 
-        // Still takes up space
+        // Hides the Recycler View
         binding.podcastRecyclerView.visibility =  View.INVISIBLE
         // Hides the search menu
         searchMenuItem.isVisible = false

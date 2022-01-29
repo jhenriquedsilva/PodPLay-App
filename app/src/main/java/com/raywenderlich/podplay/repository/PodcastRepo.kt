@@ -8,6 +8,7 @@ import com.raywenderlich.podplay.service.RssFeedService
 import com.raywenderlich.podplay.util.DateUtils
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 // Retrieves the podcast details and returns them to the view model
 class PodcastRepo(private var feedService: FeedService) {
@@ -53,7 +54,7 @@ class PodcastRepo(private var feedService: FeedService) {
 
     }
 
-    // I added the suspend keyword, but the original is not suspended
+    // Retrieves the feed from the URL and parse it into a Podcast object
     fun getPodcast(feedUrl: String): Podcast? {
 
         var podcast: Podcast? = null
@@ -64,18 +65,5 @@ class PodcastRepo(private var feedService: FeedService) {
             podcast = rssResponseToPodcast(feedUrl, "", feedResponse)
         }
         return podcast
-
-        /*
-        val rssFeedService = RssFeedService.instance
-        GlobalScope.launch {
-            rssFeedService.getFeed(feedUrl)
-        }
-        return Podcast(
-            feedUrl,
-            "No name",
-            "No description",
-            "No image"
-        )
-        */
     }
 }

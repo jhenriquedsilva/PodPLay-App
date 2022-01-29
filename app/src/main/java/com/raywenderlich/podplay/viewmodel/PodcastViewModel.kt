@@ -42,7 +42,7 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
 
     /**
      * As the repo returns a Podcast model, a function to convert
-     * from Podcast to PodcastViewData is necessary
+     * from Podcast to PodcastViewData is necessary to be shown on screen
      */
     private fun podcastToPodcastView(podcast: Podcast): PodcastViewData {
         return PodcastViewData(
@@ -57,10 +57,10 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
 
     /**
      * As the repo returns a list of Episode models, a function to convert
-     * from Episode to EpisodeViewData is necessary
+     * from Episode to EpisodeViewData is necessary to show on the screen
      */
     private fun episodesToEpisodesView(episodes: List<Episode>): List<EpisodeViewData> {
-        return episodes.map { episode ->
+        val episodesViewDataList = episodes.map { episode ->
             EpisodeViewData(
                 episode.guid,
                 episode.title,
@@ -71,6 +71,8 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
                 episode.duration
             )
         }
+
+        return episodesViewDataList
     }
 
     // Contains everything necessary to display the details of a podcast
