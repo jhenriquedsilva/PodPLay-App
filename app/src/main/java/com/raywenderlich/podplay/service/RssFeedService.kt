@@ -26,10 +26,9 @@ class RssFeedService private constructor() {
     // Passes the child node to the next call
     private fun domToRssFeedResponse(node: Node, rssFeedResponse: RssFeedResponse) {
 
-        var nodeName = ""
         // Checks if it is an XML element
         if (node.nodeType == Node.ELEMENT_NODE) {
-            nodeName = node.nodeName
+            val nodeName = node.nodeName
             val parentName = node.parentNode.nodeName
 
             val grandParentName = node.parentNode.parentNode?.nodeName ?: ""
@@ -70,10 +69,14 @@ class RssFeedService private constructor() {
         }
 
         val nodeList = node.childNodes
-        Log.d(TAG, "The $nodeName has ${nodeList.length} children")
-        for (i in 0 until nodeList.length) {
-            val childNode  = nodeList.item(i)
-            domToRssFeedResponse(childNode, rssFeedResponse)
+        if (nodeList.length > 0) {
+            if (node.nodeName == "item") {
+                Log.d(TAG, "The ${node.nodeName} has ${nodeList.length} elements")
+            }
+            for (i in 0 until nodeList.length) {
+                val childNode  = nodeList.item(i)
+                domToRssFeedResponse(childNode, rssFeedResponse)
+            }
         }
     }
 
@@ -112,6 +115,7 @@ class RssFeedService private constructor() {
         service = retrofit.create(FeedService::class.java)
 
         try {
+            // The XML is returned
             val result = service.getFeed(xmlFileURL)
             // If the code is equal to or greater than 400, this means there is an error
             if (result.code() >= 400) {
@@ -139,7 +143,7 @@ class RssFeedService private constructor() {
                     domToRssFeedResponse(doc, rss)
                     // Maybe it's possible to that in the logcat
                     //println(rss)
-
+                    Log.i(TAG, "Parsing finished")
                     rssFeedResponse = rss
                 }
                 // Returns the class with the data

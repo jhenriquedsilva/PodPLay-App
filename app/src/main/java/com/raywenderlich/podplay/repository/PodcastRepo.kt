@@ -11,13 +11,13 @@ import kotlinx.coroutines.runBlocking
 
 
 // Retrieves the podcast details and returns them to the view model
-class PodcastRepo(private var feedService: RssFeedService) {
+class PodcastRepo(private var rssFeedService: RssFeedService) {
 
     // Convert RssResponse data into Episode and Podcast objects
-    private fun rssItemsToEpisodes(
+    private fun rssEpisodesResponseToEpisodes(
         episodeResponses: List<RssFeedResponse.EpisodeResponse>
     ): List<Episode> {
-        return episodeResponses.map { episodeResponse ->
+        val listOfEpisodes = episodeResponses.map { episodeResponse ->
             Episode(
                 episodeResponse.guid ?: "",
                 episodeResponse.title ?: "",
@@ -28,28 +28,34 @@ class PodcastRepo(private var feedService: RssFeedService) {
                 episodeResponse.duration ?: ""
             )
         }
+        return listOfEpisodes
     }
 
     // Convert RssFeedResponse to a Podcast
-    private fun rssResponseToPodcast(
-        feedUrl: String, imageUrl: String, rssResponse: RssFeedResponse
+    private fun rssFeedResponseToPodcast(
+        feedUrl: String, imageUrl: String, rssFeedResponse: RssFeedResponse
     ): Podcast? {
         // If it is null, stop the method
         // There was an elvis operator over here.
         // But i removed it because it was useless
         // However if there is a bug, check if the problem
         // occurs over here
-        val items = rssResponse.episodes ?: return null
+        val episodesResponse = rssFeedResponse.episodes ?: return null
 
-        val description = if (rssResponse.description == "") rssResponse.summary else (rssResponse.description)
+        val description: String
+        if (rssFeedResponse.description == "") {
+            description = rssFeedResponse.summary
+        } else {
+            description = rssFeedResponse.description
+        }
 
         return Podcast(
             feedUrl,
-            rssResponse.title,
+            rssFeedResponse.title,
             description,
             imageUrl,
-            rssResponse.lastUpdated,
-            episodes = rssItemsToEpisodes(items)
+            rssFeedResponse.lastUpdated,
+            rssEpisodesResponseToEpisodes(episodesResponse)
         )
 
     }
@@ -59,9 +65,9 @@ class PodcastRepo(private var feedService: RssFeedService) {
 
         var podcast: Podcast? = null
         // This property is in the class constructor
-        val feedResponse = feedService.getFeed(feedUrl)
-        if (feedResponse != null) {
-            podcast = rssResponseToPodcast(feedUrl, "", feedResponse)
+        val rssFeedResponse = rssFeedService.getFeed(feedUrl)
+        if (rssFeedResponse != null) {
+            podcast = rssFeedResponseToPodcast(feedUrl, "", rssFeedResponse)
         }
         return podcast
     }
