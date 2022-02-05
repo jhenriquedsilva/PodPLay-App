@@ -1,17 +1,17 @@
 package com.raywenderlich.podplay.repository
 
+import android.util.Log
 import com.raywenderlich.podplay.model.Episode
 import com.raywenderlich.podplay.model.Podcast
 import com.raywenderlich.podplay.service.FeedService
 import com.raywenderlich.podplay.service.RssFeedResponse
 import com.raywenderlich.podplay.service.RssFeedService
 import com.raywenderlich.podplay.util.DateUtils
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
+
 // Retrieves the podcast details and returns them to the view model
-class PodcastRepo(private var feedService: FeedService) {
+class PodcastRepo(private var feedService: RssFeedService) {
 
     // Convert RssResponse data into Episode and Podcast objects
     private fun rssItemsToEpisodes(
@@ -55,10 +55,9 @@ class PodcastRepo(private var feedService: FeedService) {
     }
 
     // Retrieves the feed from the URL and parse it into a Podcast object
-    fun getPodcast(feedUrl: String): Podcast? {
+    suspend fun getPodcast(feedUrl: String): Podcast? {
 
         var podcast: Podcast? = null
-
         // This property is in the class constructor
         val feedResponse = feedService.getFeed(feedUrl)
         if (feedResponse != null) {

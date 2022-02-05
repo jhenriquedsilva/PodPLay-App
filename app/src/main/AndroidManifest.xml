@@ -12,7 +12,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PodPlay"
-        android:usesCleartextTraffic="true"> <!-- Allow the app to use URLs that starts with HTTP -->
+        android:usesCleartextTraffic="true">
+        <!-- Allow the app to use URLs that starts with HTTP.
+             By default, it's allowed to use only HTTPS -->
 
         <activity
             android:name=".ui.PodcastActivity"

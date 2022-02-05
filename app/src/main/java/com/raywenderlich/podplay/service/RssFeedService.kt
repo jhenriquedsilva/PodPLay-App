@@ -1,5 +1,6 @@
 package com.raywenderlich.podplay.service
 
+import android.util.Log
 import com.raywenderlich.podplay.BuildConfig
 import com.raywenderlich.podplay.util.DateUtils
 import kotlinx.coroutines.Dispatchers
@@ -18,11 +19,17 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 class RssFeedService private constructor() {
 
+    val TAG = "RssFeedService"
+
     // Turns the Document object into an RssFeedResponse
+    // This method is recursive. Operates on one node at a time
+    // Passes the child node to the next call
     private fun domToRssFeedResponse(node: Node, rssFeedResponse: RssFeedResponse) {
+
+        var nodeName = ""
         // Checks if it is an XML element
         if (node.nodeType == Node.ELEMENT_NODE) {
-            val nodeName = node.nodeName
+            nodeName = node.nodeName
             val parentName = node.parentNode.nodeName
 
             val grandParentName = node.parentNode.parentNode?.nodeName ?: ""
@@ -48,7 +55,6 @@ class RssFeedService private constructor() {
                     }
                 }
             }
-            // End of episode parsing
 
 
             // If the current node is a child of the channel node
@@ -64,6 +70,7 @@ class RssFeedService private constructor() {
         }
 
         val nodeList = node.childNodes
+        Log.d(TAG, "The $nodeName has ${nodeList.length} children")
         for (i in 0 until nodeList.length) {
             val childNode  = nodeList.item(i)
             domToRssFeedResponse(childNode, rssFeedResponse)
@@ -73,28 +80,35 @@ class RssFeedService private constructor() {
     // Reads the RSS file into a Document object
     suspend fun getFeed(xmlFileURL: String): RssFeedResponse? {
 
-        // The interface is bellow
+        // The interface is bellow and the instance is assigned below
         var service: FeedService
 
+        // Debug purposes
+        // It could be removed
         val interceptor = HttpLoggingInterceptor()
         interceptor.level = HttpLoggingInterceptor.Level.BODY
 
+        // To make a call with OkHttpClient, it's necessary an
+        // HTTP Request object
         val client = OkHttpClient().newBuilder()
             .connectTimeout(30,TimeUnit.SECONDS)
             .writeTimeout(30,TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
 
         // Interceptor is only added for debug builds
+        // Could be removed
         if (BuildConfig.DEBUG) {
             client.addInterceptor(interceptor)
         }
         client.build()
 
         // Treats the baseUrl construction to avoid problems with Retroif2
+        // The create method should be called
         var retrofit = Retrofit.Builder()
             .baseUrl("${xmlFileURL.split("?")[0]}/")
             .build()
 
+        // The service is created
         service = retrofit.create(FeedService::class.java)
 
         try {
@@ -111,18 +125,24 @@ class RssFeedService private constructor() {
                 // Retrofit is not good at parsing XML
                 val dbFactory = DocumentBuilderFactory.newInstance()
                 val dBuilder = dbFactory.newDocumentBuilder()
+                // Starts a coroutine to run in the background
                 withContext(Dispatchers.IO)  {
                     // ResponseBody = A one-shot stream from the origin server
                     // to the client application with the raw bytes of the response body
                     // Parses the XML into a document
+                    // InputStream is an abstract class that is the superclass of all classes representing an input stream of bytes
+                    // doc is the root element, that is, rss
                     val doc = dBuilder.parse(result.body()?.byteStream())
                     val rss = RssFeedResponse(episodes = mutableListOf())
+                    // A reference is passed to this function. So, the changes are reflected outside
+                    // the function
                     domToRssFeedResponse(doc, rss)
-                    println(rss)
+                    // Maybe it's possible to that in the logcat
+                    //println(rss)
+
                     rssFeedResponse = rss
                 }
-                // Finishes over here
-
+                // Returns the class with the data
                 return rssFeedResponse
             }
         } catch (t: Throwable) {
@@ -133,21 +153,19 @@ class RssFeedService private constructor() {
 
     // Way to use the singleton design pattern
     companion object {
-
-        val instance: RssFeedService by lazy {
-            RssFeedService()
-        }
-
+        // The last line is always returned
+        val instance: RssFeedService by lazy { RssFeedService() }
     }
 }
 
+// THESE TWO ARE NOT LINKED TOGETHER
 interface FeedService {
 
     @Headers(
         "Content-Type: application/xml; charset=utf-8",
         "Accept: application/xml"
     )
-    @GET // Gets a URL pointing to the RSS file
+    @GET // Gets a URL pointing to the RSS file            Response bytes returns raw bytes
     suspend fun getFeed(@Url xmlFileUrl: String): Response<ResponseBody>
 
 }

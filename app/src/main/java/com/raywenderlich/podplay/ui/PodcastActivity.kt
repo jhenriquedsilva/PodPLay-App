@@ -49,6 +49,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         setupViewModels()
         updateControls()
         handleIntent(intent)
+        // Always makes sure that the first Recycler View is shown
         addBackStackListener()
     }
 
@@ -149,7 +150,8 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         val service = ItunesService.instance
         searchViewModel.iTunesRepo = ItunesRepo(service)
 
-        podcastViewModel.podcastRepo = PodcastRepo()
+        val rssFeedService = RssFeedService.instance
+        podcastViewModel.podcastRepo = PodcastRepo(rssFeedService)
     }
 
     // Sets up the recycler view
