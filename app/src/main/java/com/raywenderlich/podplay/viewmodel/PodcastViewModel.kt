@@ -19,22 +19,37 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
 
     var podcastRepo: PodcastRepo? = null // Set by the caller
     var activePodcastViewData: PodcastViewData? = null // Holds the most recently loaded podcast view data
+    // MutableLiveData is used to set the value, because it is the only one
+    // with public methods for that. LiveData has no public methods for that
     private val _podcastLiveData = MutableLiveData<PodcastViewData?>()
+    // LiveData is always within a ViewModel and is exposed to the UI controller
     val podcastLiveData: LiveData<PodcastViewData?> = _podcastLiveData
 
     // Retrieves the podcast from the repo
     fun getPodcast(podcastSummaryViewData: SearchViewModel.PodcastSummaryViewData) {
 
-        val feedUrl = podcastSummaryViewData.feedUrl?.let { url ->
+        /**
+         * Elvis operator is like a null else
+         * If a value is equal to null, then execute what
+         * comes after ?:
+         */
+        podcastSummaryViewData.feedUrl?.let { url ->
+            // run is equal to apply, but returns the last line instead
+
             viewModelScope.launch {
-                podcastRepo?.getPodcast(url)?.let { podcast ->
-                    podcast.feedTitle = podcastSummaryViewData.name ?: ""
-                    podcast.imageUrl = podcastSummaryViewData.imageUrl ?: ""
-                    _podcastLiveData.value = podcastToPodcastView(podcast)
+
+                val parsedPodcast = podcastRepo?.getPodcast(url)
+                parsedPodcast?.let { parsedPodcast ->
+                    parsedPodcast.feedTitle = podcastSummaryViewData.name ?: ""
+                    parsedPodcast.imageUrl = podcastSummaryViewData.imageUrl ?: ""
+                    // When these assignment happens, the observers are notified
+                    _podcastLiveData.value = podcastToPodcastView(parsedPodcast)
                 } ?: run {
                     _podcastLiveData.value = null
                 }
+
             }
+
         } ?: run {
             _podcastLiveData.value = null
         }

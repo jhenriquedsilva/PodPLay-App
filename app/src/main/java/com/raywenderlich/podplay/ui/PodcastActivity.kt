@@ -12,6 +12,7 @@ import android.view.MenuItem
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.widget.SearchView
+import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -29,16 +30,15 @@ import kotlinx.coroutines.*
 
 class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapterListener {
 
-    private val TAG = javaClass.simpleName
     private lateinit var binding: ActivityPodcastBinding
     private val searchViewModel by viewModels<SearchViewModel>()
+    // Used to hold the podcast view data
+    private val podcastViewModel by viewModels<PodcastViewModel>()
     private lateinit var podcastListAdapter: PodcastListAdapter
     // Saves a reference to the search icon to hide it when the activity
     // is created and and retrieve it back later when the activity is destroyed
     // That's the only reason for this property
     private lateinit var searchMenuItem: MenuItem
-    // Used to hold the podcast view data
-    private val podcastViewModel by viewModels<PodcastViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -175,32 +175,26 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
     // It's called when a user taps on a podcast in the recycler view
     override fun onShowDetails(podcastSummaryViewData: SearchViewModel.PodcastSummaryViewData) {
         // This implementation probably will be changed
-        /*
-        val feedUrl = podcastSummaryViewData.feedUrl ?: return
-        showProgressBar()
-        val podcast = podcastViewModel.getPodcast(feedUrl)
-        hideProgressBar()
-        if (podcast != null)  {
-            showDetailsFragment()
-        } else {
-            showError("Error loading feed $feedUrl")
-        }
-        */
-        val feedUrl = podcastSummaryViewData.feedUrl?.let {
+        podcastSummaryViewData.feedUrl?.let {
             showProgressBar()
             podcastViewModel.getPodcast(podcastSummaryViewData)
         }
     }
 
+    // Subscribing to the LiveData
     private fun createSubscription() {
-        podcastViewModel.podcastLiveData.observe(this) {
+
+        // When the data changes, always execute this function with the new data
+        val podcastViewDataObserver = Observer<PodcastViewModel.PodcastViewData?> { podcastViewData ->
             hideProgressBar()
-            if (it != null) {
+            if (podcastViewData != null) {
                 showDetailsFragment()
             } else {
                 showError("Error loading feed")
             }
         }
+        // The owner informs which lifecycle to respect
+        podcastViewModel.podcastLiveData.observe(this, podcastViewDataObserver)
     }
 
     // If there is an error, this method gets called
