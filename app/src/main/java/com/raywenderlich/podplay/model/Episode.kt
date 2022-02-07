@@ -10,6 +10,6 @@ data class Episode(
     var description: String = "",
     var mediaUrl: String = "", // The location of the episode media. Either an audio or video file
     var mimeType: String = "", // Determines the type of file located at mediaUrl
-    var releaseDate: Date = Date(),
+    var releaseDate: String = "",
     var duration: String = "",
 )

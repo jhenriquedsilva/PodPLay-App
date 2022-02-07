@@ -6,8 +6,7 @@ import com.raywenderlich.podplay.model.Podcast
 import com.raywenderlich.podplay.service.FeedService
 import com.raywenderlich.podplay.service.RssFeedResponse
 import com.raywenderlich.podplay.service.RssFeedService
-import com.raywenderlich.podplay.util.DateUtils
-import kotlinx.coroutines.runBlocking
+
 
 
 // Retrieves the podcast details and returns them to the view model
@@ -24,7 +23,7 @@ class PodcastRepo(private var rssFeedService: RssFeedService) {
                 episodeResponse.description ?: "",
                 episodeResponse.url ?: "",
                 episodeResponse.type ?: "",
-                DateUtils.xmlDateToDate(episodeResponse.pubDate),
+                episodeResponse.pubDate ?: "",
                 episodeResponse.duration ?: ""
             )
         }
@@ -66,8 +65,10 @@ class PodcastRepo(private var rssFeedService: RssFeedService) {
         var podcast: Podcast? = null
         // This property is in the class constructor
         val rssFeedResponse = rssFeedService.getFeed(feedUrl)
+        Log.d("PodcastRepo","Value of $rssFeedResponse")
         if (rssFeedResponse != null) {
             podcast = rssFeedResponseToPodcast(feedUrl, "", rssFeedResponse)
+            Log.d("PodcastRepo","Value of $podcast")
         }
         return podcast
     }

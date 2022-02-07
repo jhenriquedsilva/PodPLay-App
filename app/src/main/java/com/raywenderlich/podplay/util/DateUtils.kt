@@ -13,11 +13,11 @@ object DateUtils {
         }
 
         // Creates a simpleDateFormat following this pattern
-        val inFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+        val inFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.FRANCE)
         // The date should be transformed to an object to be passed to last function
         val date = inFormat.parse(jsonDate) ?: return "-"
         // Get the format to be shown on screen
-        val outputFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.getDefault())
+        val outputFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.FRANCE)
         // The string date is returned in a good format
         return outputFormat.format(date)
     }
@@ -25,7 +25,7 @@ object DateUtils {
     // This converts a date string found in the RSS XML feed to a Date object
     fun xmlDateToDate(dateString: String?): Date {
         val date = dateString ?: return Date()
-        val inFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.getDefault())
+        val inFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.FRANCE)
         return inFormat.parse(date) ?: Date()
     }
 }

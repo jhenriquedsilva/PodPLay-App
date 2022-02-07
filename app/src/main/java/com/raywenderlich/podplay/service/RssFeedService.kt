@@ -2,7 +2,6 @@ package com.raywenderlich.podplay.service
 
 import android.util.Log
 import com.raywenderlich.podplay.BuildConfig
-import com.raywenderlich.podplay.util.DateUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -63,21 +62,21 @@ class RssFeedService private constructor() {
                     "description" -> rssFeedResponse.description = node.textContent
                     "itunes:summary" -> rssFeedResponse.summary = node.textContent
                     "item" -> rssFeedResponse.episodes?.add(RssFeedResponse.EpisodeResponse())
-                    "pubDate" -> rssFeedResponse.lastUpdated = DateUtils.xmlDateToDate(node.textContent)
+                    "pubDate" -> rssFeedResponse.lastUpdated = node.textContent
                 }
             }
         }
 
         val nodeList = node.childNodes
-        if (nodeList.length > 0) {
-            if (node.nodeName == "item") {
-                Log.d(TAG, "The ${node.nodeName} has ${nodeList.length} elements")
-            }
-            for (i in 0 until nodeList.length) {
-                val childNode  = nodeList.item(i)
-                domToRssFeedResponse(childNode, rssFeedResponse)
-            }
+      //  if (nodeList.length > 0) {
+        if (node.nodeName == "item") {
+            Log.d(TAG, "The ${node.nodeName} has ${nodeList.length} elements")
         }
+        for (i in 0 until nodeList.length) {
+            val childNode  = nodeList.item(i)
+            domToRssFeedResponse(childNode, rssFeedResponse)
+        }
+       // }
     }
 
     // Reads the RSS file into a Document object
@@ -147,6 +146,7 @@ class RssFeedService private constructor() {
                     rssFeedResponse = rss
                 }
                 // Returns the class with the data
+                Log.d(TAG,"Value of rssFeeoResponse is $rssFeedResponse")
                 return rssFeedResponse
             }
         } catch (t: Throwable) {

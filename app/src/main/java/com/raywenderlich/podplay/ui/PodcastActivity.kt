@@ -51,6 +51,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         handleIntent(intent)
         // Always makes sure that the first Recycler View is shown
         addBackStackListener()
+        createSubscription()
     }
 
 

@@ -27,6 +27,7 @@ class PodcastListAdapter(
     inner class PodcastViewHolder(
         // That's the layout
         databinding: SearchItemBinding,
+        // That's the principal activity too
         private val podcastListAdapterListener: PodcastListAdapterListener
     ): RecyclerView.ViewHolder(databinding.root) {
 
@@ -45,9 +46,6 @@ class PodcastListAdapter(
             }
         }
     }
-
-
-
 
     // Every time there is a new search, the recycler view should be updated
     fun setSearchData(podcastSummaryViewData: List<PodcastSummaryViewData>) {

@@ -8,7 +8,7 @@ data class RssFeedResponse(
     var title : String = "",
     var description : String = "",
     var summary : String = "",
-    var lastUpdated : Date = Date(),
+    var lastUpdated : String = "",
     var episodes: MutableList<EpisodeResponse>
     ) {
     data class EpisodeResponse(
