@@ -5,6 +5,8 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.raywenderlich.podplay.databinding.EpisodeBinding
+import com.raywenderlich.podplay.util.DateUtils
+import com.raywenderlich.podplay.util.HtmlUtils
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 
 // Adapter of each episode
@@ -42,9 +44,9 @@ class EpisodeListAdapter(
 
         // holder.episodeViewData = episodeViewData
         holder.titleTextView.text = episodeViewData.title
-        holder.descTextView.text = episodeViewData.description
+        holder.descTextView.text = HtmlUtils.htmlToSpannable(episodeViewData.description ?: "")
         holder.durationTextView.text = episodeViewData.duration
-        holder.releaseDateTextView.text = episodeViewData.releaseDate.toString()
+        holder.releaseDateTextView.text = episodeViewData.releaseDate
 
 
     }

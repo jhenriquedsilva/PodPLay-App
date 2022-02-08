@@ -28,4 +28,13 @@ object DateUtils {
         val inFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.FRANCE)
         return inFormat.parse(date) ?: Date()
     }
+
+    // This function takes care of the date of each episode int he details screen
+    fun dateToShortDate(date: Date): String {
+        val outputFormat = DateFormat.getDateInstance(
+            DateFormat.SHORT, Locale.FRANCE
+        )
+        return outputFormat.format(date)
+    }
+
 }
