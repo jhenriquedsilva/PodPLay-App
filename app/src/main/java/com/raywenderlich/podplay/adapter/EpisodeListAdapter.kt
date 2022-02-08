@@ -1,5 +1,6 @@
 package com.raywenderlich.podplay.adapter
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.TextView
@@ -13,6 +14,8 @@ import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 class EpisodeListAdapter(
     private var episodeViewList: List<PodcastViewModel.EpisodeViewData>?
 ): RecyclerView.Adapter<EpisodeListAdapter.EpisodeViewHolder>() {
+
+    val TAG = "EpisodeListAdapter"
 
     inner class EpisodeViewHolder(
         val databinding: EpisodeBinding
