@@ -19,6 +19,7 @@ class PodcastRepo(private var rssFeedService: RssFeedService) {
         val listOfEpisodes = episodeResponses.map { episodeResponse ->
             Episode(
                 episodeResponse.guid ?: "",
+                null,
                 episodeResponse.title ?: "",
                 episodeResponse.description ?: "",
                 episodeResponse.url ?: "",
@@ -49,6 +50,7 @@ class PodcastRepo(private var rssFeedService: RssFeedService) {
         }
 
         return Podcast(
+            null,
             feedUrl,
             rssFeedResponse.title,
             description,
