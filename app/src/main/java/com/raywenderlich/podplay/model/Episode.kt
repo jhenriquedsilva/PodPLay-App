@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 import java.util.Date
 
 // Defines the data for a single podcast episode
-@Entity(tableName = "episodes")
+@Entity()
 data class Episode(
     @PrimaryKey var guid: String = "", // Unique identifier provided in the RSS feed for an episode
     var podcastId: Long? = null,

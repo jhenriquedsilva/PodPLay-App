@@ -6,7 +6,6 @@ import androidx.room.*
 // The foreignKeys attributes let you define relationships between tables
 // and add constraints on them
 @Entity(
-    tableName = "podcasts",
     foreignKeys = [
         // This object relates the podcastId property in the Episode
         // entity to the property id in the Podcast entity
@@ -39,7 +38,7 @@ data class Podcast(
     @ColumnInfo(name = "feedDesc") var feedDesc: String = "",
     @ColumnInfo(name = "imageUrl") var imageUrl: String = "",
     @ColumnInfo(name = "lastUpdated") var lastUpdated: String = "",
-    @ColumnInfo(name = "episodes") var episodes: List<Episode> = listOf()
+    @Ignore var episodes: List<Episode> = listOf()
 )
 
 /**

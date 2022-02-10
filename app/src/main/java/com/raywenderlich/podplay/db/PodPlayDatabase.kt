@@ -1,14 +1,31 @@
 package com.raywenderlich.podplay.db
 
 import android.content.Context
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
+import androidx.room.*
 import com.raywenderlich.podplay.model.Episode
 import com.raywenderlich.podplay.model.Podcast
 import kotlinx.coroutines.CoroutineScope
+import java.util.*
+
+// TypeConverters are methods
+// The class is only a holder
+// Since I removed the date parsing, I commented this code
+/*
+class Converters {
+    @TypeConverter
+    fun fromTimestamp(value: Long?): Date? {
+        return if (value == null) null else Date(value)
+    }
+
+    @TypeConverter
+    fun toTimestamp(date: Date?): Long? {
+        return (date?.time)
+    }
+}
+*/
 
 @Database(entities = [Podcast::class, Episode::class], version = 1)
+// @TypeConverters(Converters::class)
 abstract class PodPlayDatabase: RoomDatabase() {
 
     abstract fun podcastDao(): PodcastDao
