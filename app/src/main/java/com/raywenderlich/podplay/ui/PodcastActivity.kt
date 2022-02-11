@@ -28,7 +28,9 @@ import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 import com.raywenderlich.podplay.viewmodel.SearchViewModel
 import kotlinx.coroutines.*
 
-class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapterListener {
+class PodcastActivity : AppCompatActivity(),
+    PodcastListAdapter.PodcastListAdapterListener,
+PodcastDetailsFragment.OnPodcastDetailsListener{
 
     private lateinit var binding: ActivityPodcastBinding
     private val searchViewModel by viewModels<SearchViewModel>()
@@ -48,6 +50,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         setupToolbar()
         setupViewModels()
         updateControls()
+        setupPodcastListView()
         handleIntent(intent)
         // Always makes sure that the first Recycler View is shown
         addBackStackListener()
@@ -56,6 +59,25 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
 
 
     // Searching a podcast feature 1
+
+    private fun showSubscribedPodcasts() {
+        val podcasts = podcastViewModel.getPodcasts()?.value
+
+        if (podcasts != null) {
+            binding.toolbar.title = getString(R.string.subscribed_podcasts)
+            podcastListAdapter.setSearchData(podcasts)
+        }
+    }
+
+    private fun setupPodcastListView() {
+        val podcastSummaryViewDataListObserver =
+            Observer<List<SearchViewModel.PodcastSummaryViewData>> { podcastSummaryViewDataList ->
+                if (podcastSummaryViewDataList != null) {
+                    showSubscribedPodcasts()
+                }
+            }
+        podcastViewModel.getPodcasts()?.observe(this, podcastSummaryViewDataListObserver)
+    }
 
     // Creates the search icon
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -152,7 +174,8 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         searchViewModel.iTunesRepo = ItunesRepo(service)
 
         val rssFeedService = RssFeedService.instance
-        podcastViewModel.podcastRepo = PodcastRepo(rssFeedService)
+        val podcastDao = podcastViewModel.podcastDao
+        podcastViewModel.podcastRepo = PodcastRepo(rssFeedService, podcastDao)
     }
 
     // Sets up the recycler view
@@ -275,5 +298,11 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
     companion object {
         // This tag uniquely identifies the details Fragment in the Fragment Manager
         private const val TAG_DETAILS_FRAGMENT = "DetailsFragment"
+    }
+
+    override fun onSubscribe() {
+        podcastViewModel.saveActivePodcast()
+        // Remove the podcast details fragment from the backstack
+        supportFragmentManager.popBackStack()
     }
 }

@@ -42,7 +42,7 @@ abstract class PodPlayDatabase: RoomDatabase() {
         @Volatile
         private var INSTANCE: PodPlayDatabase? = null
                                         // I still do not know what is of this coroutine scope
-        fun getInstance(context: Context, coroutineScopde: CoroutineScope): PodPlayDatabase {
+        fun getInstance(context: Context, coroutineScope: CoroutineScope): PodPlayDatabase {
 
             val temporaryInstance = INSTANCE
 

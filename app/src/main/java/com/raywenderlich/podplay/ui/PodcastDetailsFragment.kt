@@ -1,5 +1,6 @@
 package com.raywenderlich.podplay.ui
 
+import android.content.Context
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.view.*
@@ -14,13 +15,32 @@ import com.raywenderlich.podplay.R
 import com.raywenderlich.podplay.adapter.EpisodeListAdapter
 import com.raywenderlich.podplay.databinding.FragmentPodcastDetailsBinding
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
+import java.lang.RuntimeException
 
 class PodcastDetailsFragment: Fragment() {
+
+    interface OnPodcastDetailsListener {
+        fun onSubscribe()
+    }
 
     private lateinit var databinding: FragmentPodcastDetailsBinding
     private lateinit var episodeListAdapter: EpisodeListAdapter
     // activityViewModels() provides the same activity that was initialized in the parent activity
     private val podcastViewModel: PodcastViewModel by  activityViewModels()
+    private var listener: OnPodcastDetailsListener? = null
+
+    // When the fragment is attached to its parent activity,
+    // this method is called. The context is a reference to
+    // the parent activity
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is OnPodcastDetailsListener) {
+            listener = context
+        } else {
+            throw RuntimeException(context.toString() +
+                    " must implement OnPodcastDetailsListener")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +58,7 @@ class PodcastDetailsFragment: Fragment() {
         return databinding.root
     }
 
-    // After the vire is created, the data is loaded
+    // After the view is created, the data is loaded
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         /**
@@ -85,7 +105,23 @@ class PodcastDetailsFragment: Fragment() {
         inflater.inflate(R.menu.menu_details,menu)
     }
 
-    // Setting thr UI data
+    // The activity is always who acts
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.menu_feed_action -> {
+                // The activity podcast should not be equal to null
+                podcastViewModel.podcastLiveData.value?.feedUrl?.let {
+                    listener?.onSubscribe()
+                }
+                return true
+            }
+
+            else -> return super.onOptionsItemSelected(item)
+
+            }
+    }
+
+    // Setting the UI data
     private fun updateControls() {
         // Gets the data from the view model and populates the layout
         if (podcastViewModel.activePodcastViewData != null) {
@@ -104,4 +140,6 @@ class PodcastDetailsFragment: Fragment() {
         // That's a static function
         fun newInstance(): PodcastDetailsFragment { return PodcastDetailsFragment() }
     }
+
+
 }

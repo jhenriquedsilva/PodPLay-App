@@ -1,13 +1,13 @@
 package com.raywenderlich.podplay.viewmodel
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
+import com.raywenderlich.podplay.db.PodPlayDatabase
+import com.raywenderlich.podplay.db.PodcastDao
 import com.raywenderlich.podplay.model.Episode
 import com.raywenderlich.podplay.model.Podcast
 import com.raywenderlich.podplay.repository.PodcastRepo
+import com.raywenderlich.podplay.util.DateUtils
 import kotlinx.coroutines.launch
 import java.util.Date
 
@@ -18,13 +18,51 @@ import java.util.Date
 class PodcastViewModel(application: Application): AndroidViewModel(application) {
 
     var podcastRepo: PodcastRepo? = null // Set by the caller
+    val podcastDao: PodcastDao = PodPlayDatabase.getInstance(application,viewModelScope).podcastDao()
     var activePodcastViewData: PodcastViewData? = null // Holds the most recently loaded podcast view data
+    private var activePodcast: Podcast? = null // Holds the currently loaded podcast
+    // Holds all the podcasts that are stored in the database
+    var livePodcastSummaryData: LiveData<List<SearchViewModel.PodcastSummaryViewData>>? = null
     // MutableLiveData is used to set the value, because it is the only one
     // with public methods for that. LiveData has no public methods for that
     private val _podcastLiveData = MutableLiveData<PodcastViewData?>()
     // LiveData is always within a ViewModel and is exposed to the UI controller
     val podcastLiveData: LiveData<PodcastViewData?> = _podcastLiveData
 
+    fun saveActivePodcast() {
+        // These null check is done everywhere
+        val repo = podcastRepo ?: return
+        activePodcast?.let { activePodcast ->
+            repo.save(activePodcast)
+        }
+    }
+
+    // This method returns the podcasts that are stored to be shown on screen
+    fun getPodcasts(): LiveData<List<SearchViewModel.PodcastSummaryViewData>>? {
+        val repo = podcastRepo ?: return null
+
+        if (livePodcastSummaryData == null) {
+            val liveData = repo.getAll()
+            // LiveData has no map function. So it is necessary to use Transformations
+            // to map the LiveData, and the return value still is a LiveData.
+            livePodcastSummaryData = Transformations.map(liveData) { podcastList ->
+                podcastList.map { podcast ->
+                    podcastToSummaryView(podcast)
+                }
+            }
+        }
+        return livePodcastSummaryData
+    }
+
+    // All subscribed podcasts are returned
+    private fun podcastToSummaryView(podcast: Podcast): SearchViewModel.PodcastSummaryViewData {
+        return SearchViewModel.PodcastSummaryViewData(
+            podcast.feedTitle,
+            podcast.lastUpdated,
+            podcast.imageUrl,
+            podcast.feedUrl
+        )
+    }
     // Retrieves the podcast from the repo
     fun getPodcast(podcastSummaryViewData: SearchViewModel.PodcastSummaryViewData) {
 
@@ -44,6 +82,8 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
                     parsedPodcast.imageUrl = podcastSummaryViewData.imageUrl ?: ""
                     // When these assignment happens, the observers are notified
                     _podcastLiveData.value = podcastToPodcastView(parsedPodcast)
+                    // The new loaded podcast is always updated
+                    activePodcast = parsedPodcast
                 } ?: run {
                     _podcastLiveData.value = null
                 }

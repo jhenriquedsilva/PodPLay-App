@@ -1,16 +1,41 @@
 package com.raywenderlich.podplay.repository
 
 import android.util.Log
+import androidx.lifecycle.LiveData
+import com.raywenderlich.podplay.db.PodcastDao
 import com.raywenderlich.podplay.model.Episode
 import com.raywenderlich.podplay.model.Podcast
 import com.raywenderlich.podplay.service.FeedService
 import com.raywenderlich.podplay.service.RssFeedResponse
 import com.raywenderlich.podplay.service.RssFeedService
-
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 
 // Retrieves the podcast details and returns them to the view model
-class PodcastRepo(private var rssFeedService: RssFeedService) {
+class PodcastRepo(
+    private var rssFeedService: RssFeedService,
+    private var podcastDao: PodcastDao
+    ) {
+
+    // This method should be asynchronous.
+    // So it should be run in a coroutine scope
+    fun getAll(): LiveData<List<Podcast>> {
+        return podcastDao.loadPodcasts()
+    }
+
+    // Saves a podcast to the database
+    // Database access should occur in the background
+    fun save(podcast: Podcast) {
+        GlobalScope.launch {
+            val podcastId = podcastDao.insertPodcast(podcast)
+
+            for(episode in podcast.episodes) {
+                episode.podcastId = podcastId
+                podcastDao.insertEpisode(episode)
+            }
+        }
+    }
 
     // Convert RssResponse data into Episode and Podcast objects
     private fun rssEpisodesResponseToEpisodes(
