@@ -21,6 +21,7 @@ class PodcastDetailsFragment: Fragment() {
 
     interface OnPodcastDetailsListener {
         fun onSubscribe()
+        fun onUnsubscribe()
     }
 
     private lateinit var databinding: FragmentPodcastDetailsBinding
@@ -90,11 +91,28 @@ class PodcastDetailsFragment: Fragment() {
 
                 episodeListAdapter = EpisodeListAdapter(podcastViewData.episodes)
                 databinding.episodeRecyclerView.adapter = episodeListAdapter
+
+                // Declares the option menu has changes,
+                // so it needs to be recreated
+                activity?.invalidateOptionsMenu()
             }
         }
 
         // If there is changes in podcastViewData data, the UI is updated
         podcastViewModel.podcastLiveData.observe(viewLifecycleOwner,podcastViewDataObserver)
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        val podcastViewDataObserver = Observer<PodcastViewModel.PodcastViewData?> { podcastViewData ->
+            if (podcastViewData != null) {
+                menu.findItem(R.id.menu_feed_action).title =
+                    if (podcastViewData.subscribed) getString(R.string.unsubscribe)
+                else getString(R.string.subscribe)
+            }
+        }
+        podcastViewModel.podcastLiveData.observe(viewLifecycleOwner, podcastViewDataObserver)
+
+        super.onPrepareOptionsMenu(menu)
     }
 
     // Inflates the menu details options menu so its items are added to
@@ -109,8 +127,9 @@ class PodcastDetailsFragment: Fragment() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.menu_feed_action -> {
-                // The activity podcast should not be equal to null
-                podcastViewModel.podcastLiveData.value?.feedUrl?.let {
+                if (item.title == getString(R.string.unsubscribe)) {
+                    listener?.onSubscribe()
+                } else {
                     listener?.onSubscribe()
                 }
                 return true

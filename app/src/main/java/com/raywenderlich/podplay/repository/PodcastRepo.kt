@@ -37,7 +37,11 @@ class PodcastRepo(
         }
     }
 
-
+    fun delete(podcast: Podcast) {
+        GlobalScope.launch {
+            podcastDao.deletePodcast(podcast)
+        }
+    }
 
 
 
@@ -92,14 +96,21 @@ class PodcastRepo(
 
     // Retrieves the feed from the URL and parse it into a Podcast object
     suspend fun getPodcast(feedUrl: String): Podcast? {
-
+        // This piece first checks the local db
+        val podcastLocal = podcastDao.loadPodcast(feedUrl)
+        if (podcastLocal != null) {
+            podcastLocal.id?.let { id ->
+                podcastLocal.episodes = podcastDao.loadEpisodes(id)
+                return podcastLocal
+            }
+        }
+        // This piece fetches the internet
         var podcast: Podcast? = null
         // This property is in the class constructor
         val rssFeedResponse = rssFeedService.getFeed(feedUrl)
-        Log.d("PodcastRepo","Value of $rssFeedResponse")
+
         if (rssFeedResponse != null) {
             podcast = rssFeedResponseToPodcast(feedUrl, "", rssFeedResponse)
-            Log.d("PodcastRepo","Value of $podcast")
         }
         return podcast
     }

@@ -2,6 +2,7 @@ package com.raywenderlich.podplay.db
 
 import androidx.lifecycle.LiveData
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy.REPLACE
 import androidx.room.Query
@@ -16,6 +17,9 @@ interface PodcastDao {
      * in the background even though you write them in a
      * synchronous fashion
      */
+
+    @Query("SELECT * FROM podcasts WHERE feedUrl = :url")
+    suspend fun loadPodcast(url: String): Podcast?
 
     // It's not necessary to add the suspend keyword in this
     // function because LiveData already uses the suspend keyword.
@@ -32,4 +36,7 @@ interface PodcastDao {
 
     @Insert(onConflict = REPLACE)
     suspend fun insertEpisode(episode:Episode): Long
+
+    @Delete
+    suspend fun deletePodcast(podcast: Podcast)
 }

@@ -308,4 +308,9 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
         // Remove the podcast details fragment from the backstack
         supportFragmentManager.popBackStack()
     }
+
+    override fun onUnsubscribe() {
+        podcastViewModel.deleteActivePodcast()
+        supportFragmentManager.popBackStack()
+    }
 }

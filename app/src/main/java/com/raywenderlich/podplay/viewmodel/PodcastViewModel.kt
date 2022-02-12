@@ -37,6 +37,12 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
         }
     }
 
+    fun deleteActivePodcast() {
+        val repo = podcastRepo ?: return
+        activePodcast?.let { activePodcast ->
+            repo.delete(activePodcast)
+        }
+    }
     // This method returns the podcasts that are stored to be shown on screen
     fun getPodcasts(): LiveData<List<SearchViewModel.PodcastSummaryViewData>>? {
         val repo = podcastRepo ?: return null
@@ -101,7 +107,9 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
      */
     private fun podcastToPodcastView(podcast: Podcast): PodcastViewData {
         return PodcastViewData(
-            false,
+            // If the id is different from null,
+            // that means it is stored in the database
+            podcast.id != null,
             podcast.feedUrl,
             podcast.feedTitle,
             podcast.feedDesc,
