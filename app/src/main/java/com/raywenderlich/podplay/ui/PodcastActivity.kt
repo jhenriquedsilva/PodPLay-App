@@ -301,6 +301,9 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
     }
 
     override fun onSubscribe() {
+        // The podcast data is already saved
+        // in a variable inside podcastViewModel.
+        // So there is no need to pass any data to this function
         podcastViewModel.saveActivePodcast()
         // Remove the podcast details fragment from the backstack
         supportFragmentManager.popBackStack()
