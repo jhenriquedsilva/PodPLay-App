@@ -14,6 +14,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.raywenderlich.podplay.R
@@ -85,6 +86,20 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
         menuInflater.inflate(R.menu.menu_search, menu)
         // The search action menu is found
         searchMenuItem = menu.findItem(R.id.search_item)
+
+        searchMenuItem.setOnActionExpandListener(
+            object : MenuItem.OnActionExpandListener {
+                override fun onMenuItemActionExpand(item: MenuItem?): Boolean {
+                    return true
+                }
+                // This action is taken when a search is made in the PodcastActivity
+                // and the user wants to see the subscribed podcasts again
+                override fun onMenuItemActionCollapse(item: MenuItem?): Boolean {
+                    showSubscribedPodcasts()
+                    return true
+                }
+            }
+        )
         // The search view is taken from the item's action view
         val searchView = searchMenuItem.actionView as SearchView
 
@@ -203,6 +218,17 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
             showProgressBar()
             podcastViewModel.getPodcast(podcastSummaryViewData)
         }
+
+        /*
+        podcastSummaryViewData.feedUrl ?: return
+            showProgressBar()
+            podcastViewModel.viewModelScope.launch(Dispatchers.Main) {
+                podcastViewModel.getPodcast(podcastSummaryViewData)
+                hideProgressBar()
+                // There is a problem with this call
+            // showDetailsFragment()
+            }
+        */
     }
 
     // Subscribing to the LiveData
@@ -295,11 +321,6 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
 
     // End of showing the details screen to the user 3
 
-    companion object {
-        // This tag uniquely identifies the details Fragment in the Fragment Manager
-        private const val TAG_DETAILS_FRAGMENT = "DetailsFragment"
-    }
-
     override fun onSubscribe() {
         // The podcast data is already saved
         // in a variable inside podcastViewModel.
@@ -313,4 +334,10 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
         podcastViewModel.deleteActivePodcast()
         supportFragmentManager.popBackStack()
     }
+
+    companion object {
+        // This tag uniquely identifies the details Fragment in the Fragment Manager
+        private const val TAG_DETAILS_FRAGMENT = "DetailsFragment"
+    }
+
 }

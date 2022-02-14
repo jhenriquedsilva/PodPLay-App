@@ -8,6 +8,7 @@ import com.raywenderlich.podplay.model.Episode
 import com.raywenderlich.podplay.model.Podcast
 import com.raywenderlich.podplay.repository.PodcastRepo
 import com.raywenderlich.podplay.util.DateUtils
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.util.Date
 

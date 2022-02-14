@@ -103,6 +103,8 @@ class PodcastDetailsFragment: Fragment() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu) {
+        // Observes the podcast view data to display the correct data
+        // in the toolbar: subscribed and unsubscribe
         val podcastViewDataObserver = Observer<PodcastViewModel.PodcastViewData?> { podcastViewData ->
             if (podcastViewData != null) {
                 menu.findItem(R.id.menu_feed_action).title =
@@ -126,9 +128,10 @@ class PodcastDetailsFragment: Fragment() {
     // The activity is always who acts
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+
             R.id.menu_feed_action -> {
                 if (item.title == getString(R.string.unsubscribe)) {
-                    listener?.onSubscribe()
+                    listener?.onUnsubscribe()
                 } else {
                     listener?.onSubscribe()
                 }
