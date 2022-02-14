@@ -141,20 +141,6 @@ class PodcastDetailsFragment: Fragment() {
             else -> return super.onOptionsItemSelected(item)
 
             }
-    }
-
-    // Setting the UI data
-    private fun updateControls() {
-        // Gets the data from the view model and populates the layout
-        if (podcastViewModel.activePodcastViewData != null) {
-            val viewData = podcastViewModel.activePodcastViewData as PodcastViewModel.PodcastViewData
-            databinding.feedTitleTextView.text = viewData.feedTitle
-            databinding.feedDescTextView.text = viewData.feedDesc
-            // Gets the parent activity to associate with Glide
-            if (activity != null) { Glide.with(activity as FragmentActivity).load(viewData.imageUrl).into(databinding.feedImageView)}
-        } else {
-            return
-        }
 
     }
 

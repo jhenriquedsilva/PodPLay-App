@@ -311,7 +311,8 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
             TAG_DETAILS_FRAGMENT
         )   // Calling addToBackStack() makes sure that the back button works to close the fragment
             // If you do not add the fragment to back stack and press the back button, the app will close
-            .addToBackStack("DetailsFragment").commit()
+            .addToBackStack("DetailsFragment")
+            .commit()
 
         // Hides the Recycler View
         binding.podcastRecyclerView.visibility =  View.INVISIBLE
