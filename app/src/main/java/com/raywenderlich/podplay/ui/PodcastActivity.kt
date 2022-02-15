@@ -14,9 +14,9 @@ import androidx.activity.viewModels
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.work.*
 import com.raywenderlich.podplay.R
 import com.raywenderlich.podplay.adapter.PodcastListAdapter
 import com.raywenderlich.podplay.databinding.ActivityPodcastBinding
@@ -27,7 +27,9 @@ import com.raywenderlich.podplay.service.ItunesService
 import com.raywenderlich.podplay.service.RssFeedService
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 import com.raywenderlich.podplay.viewmodel.SearchViewModel
+import com.raywenderlich.podplay.worker.EpisodeUpdateWorker
 import kotlinx.coroutines.*
+import java.util.concurrent.TimeUnit
 
 class PodcastActivity : AppCompatActivity(),
     PodcastListAdapter.PodcastListAdapterListener,
@@ -56,6 +58,7 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
         // Always makes sure that the first Recycler View is shown
         addBackStackListener()
         createSubscription()
+        scheduleJobs()
     }
 
 
@@ -336,9 +339,34 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
         supportFragmentManager.popBackStack()
     }
 
+    private fun scheduleJobs() {
+        // Constraints for when the worker should run
+        val constraints: Constraints = Constraints.Builder().apply {
+            // Execute only when the device is connected to the internet
+            setRequiredNetworkType(NetworkType.CONNECTED)
+            // Only executes worker when the device is plugged into a power source
+            setRequiresCharging(true)
+        }.build()
+
+        // Work to be repeated at set intervals
+        val request = PeriodicWorkRequestBuilder<EpisodeUpdateWorker>(
+            1, TimeUnit.HOURS
+        )
+            .setConstraints(constraints)
+            .build()
+
+        // Schedules the work request
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            TAG_EPISODE_UPDATE_JOB,
+            ExistingPeriodicWorkPolicy.REPLACE,
+            request
+        )
+    }
+
     companion object {
         // This tag uniquely identifies the details Fragment in the Fragment Manager
         private const val TAG_DETAILS_FRAGMENT = "DetailsFragment"
+        private const val TAG_EPISODE_UPDATE_JOB = "com.raywenderlich.podplay.episodes"
     }
 
 }
