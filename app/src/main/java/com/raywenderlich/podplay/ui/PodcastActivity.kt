@@ -356,9 +356,14 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
             .build()
 
         // Schedules the work request
+        // Unique work is a powerful concept that guarantees that you
+        // only have one instance of work with a particular name at a time
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            // Identifies the work request
             TAG_EPISODE_UPDATE_JOB,
+            // Replace the existing work with with the new work
             ExistingPeriodicWorkPolicy.REPLACE,
+            // The request itself
             request
         )
     }

@@ -47,10 +47,10 @@ class EpisodeUpdateWorker(context: Context, parameters: WorkerParameters): Corou
             Result.success()
         }
     }
-
     // This method should only be called when running on API 26
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel() {
+        TODO("I have to study how a notification works")
         // Notification manager is retrieved
         val notificationManager = applicationContext.getSystemService(NOTIFICATION_SERVICE)
                 as NotificationManager
