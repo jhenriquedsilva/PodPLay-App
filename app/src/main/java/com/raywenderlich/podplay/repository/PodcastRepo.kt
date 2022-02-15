@@ -1,11 +1,9 @@
 package com.raywenderlich.podplay.repository
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import com.raywenderlich.podplay.db.PodcastDao
 import com.raywenderlich.podplay.model.Episode
 import com.raywenderlich.podplay.model.Podcast
-import com.raywenderlich.podplay.service.FeedService
 import com.raywenderlich.podplay.service.RssFeedResponse
 import com.raywenderlich.podplay.service.RssFeedService
 import kotlinx.coroutines.GlobalScope
@@ -17,6 +15,72 @@ class PodcastRepo(
     private var rssFeedService: RssFeedService,
     private var podcastDao: PodcastDao
     ) {
+
+    // Holds the updated details for a single podcast
+    data class PodcastUpdateInfo(
+        val feedUrl: String,
+        val name: String,
+        val newCount: Int
+    )
+
+    // Checks if there is new episodes and return them
+    private suspend fun getNewEpisodes(localPodcast: Podcast): List<Episode> {
+        val response = rssFeedService.getFeed(localPodcast.feedUrl)
+
+        if (response != null) {
+            val remotePodcast =
+                rssFeedResponseToPodcast(localPodcast.feedUrl,
+                localPodcast.imageUrl, response)
+            remotePodcast?.let { remotePodcast ->
+                val localEpisodes =
+                    podcastDao.loadEpisodes(localPodcast.id as Long)
+
+                // Creates a list with the new episodes only
+                return remotePodcast.episodes.filter { remoteEpisode ->
+                    localEpisodes.find { localEpisode -> remoteEpisode.guid == localEpisode.guid } == null
+                }
+            }
+        }
+        return listOf()
+    }
+
+    // Save the new episodes in the database
+    private fun saveNewEpisodes(podcastId: Long, episodes: List<Episode>) {
+        GlobalScope.launch {
+            for (episode in episodes) {
+                episode.podcastId = podcastId
+                podcastDao.insertEpisode(episode)
+            }
+        }
+    }
+
+    // That's the podcast update method
+    suspend fun updatePodcastEpisodes(): MutableList<PodcastUpdateInfo> {
+        val updatedPodcasts: MutableList<PodcastUpdateInfo> =
+            mutableListOf()
+
+        val podcasts = podcastDao.loadPodcastsStatic()
+
+        for (podcast in podcasts) {
+            val newEpisodes = getNewEpisodes(podcast)
+
+            if (newEpisodes.count() > 0) {
+                podcast.id?.let { id ->
+                    saveNewEpisodes(id,newEpisodes)
+                    updatedPodcasts.add(
+                        PodcastUpdateInfo(
+                            podcast.feedUrl,
+                            podcast.feedTitle,
+                            newEpisodes.count()
+                        )
+                    )
+                }
+            }
+
+        }
+
+        return updatedPodcasts
+    }
 
     // This method should be asynchronous.
     // So it should be run in a coroutine scope
