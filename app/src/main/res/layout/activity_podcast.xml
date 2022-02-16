@@ -23,7 +23,7 @@
 
     </com.google.android.material.appbar.AppBarLayout>
     <!-- This component is for the podcast details -->
-    <androidx.fragment.app.FragmentContainerView
+    <FrameLayout
         android:id="@+id/podcastDetailsContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"

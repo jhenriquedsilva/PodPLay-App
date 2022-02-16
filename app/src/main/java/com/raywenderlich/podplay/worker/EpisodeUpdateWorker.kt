@@ -19,7 +19,9 @@ import com.raywenderlich.podplay.ui.PodcastActivity
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.async
 
+// When the task is ready to be executed, this class is activated
 class EpisodeUpdateWorker(context: Context, parameters: WorkerParameters): CoroutineWorker(context,parameters) {
+
     override suspend fun doWork(): Result {
         // coroutineScope is a coroutine builder. It creates
         // a suspending coroutine block and returns the last line
@@ -31,14 +33,15 @@ class EpisodeUpdateWorker(context: Context, parameters: WorkerParameters): Corou
 
                 val podcastUpdates = repo.updatePodcastEpisodes()
 
+                // Channels are allowed from API 26 on
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     createNotificationChannel()
                 }
 
+                // The notifications are shown after the channel is created
                 for (podcastUpdate in podcastUpdates) {
                     displayNotification(podcastUpdate)
                 }
-
             }
             // Suspends the function until
             // the coroutine is completed
@@ -47,10 +50,14 @@ class EpisodeUpdateWorker(context: Context, parameters: WorkerParameters): Corou
             Result.success()
         }
     }
+
     // This method should only be called when running on API 26
+    // because channels started on this API
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel() {
-        TODO("I have to study how a notification works")
+        // If a channel is not created,
+        // the notification will not appear
+
         // Notification manager is retrieved
         val notificationManager = applicationContext.getSystemService(NOTIFICATION_SERVICE)
                 as NotificationManager
@@ -63,12 +70,14 @@ class EpisodeUpdateWorker(context: Context, parameters: WorkerParameters): Corou
         }
     }
 
+    // Creates a single notification
     private fun displayNotification(podcastInfo: PodcastRepo.PodcastUpdateInfo) {
 
         // The notification manager needs to know what content to display
         // when the user taps the notification
         val contentIntent = Intent(applicationContext, PodcastActivity::class.java)
         contentIntent.putExtra(EXTRA_FEED_URL,podcastInfo.feedUrl)
+
         val pendingContentIntent = PendingIntent.getActivity(
             applicationContext,
             0,
@@ -77,11 +86,14 @@ class EpisodeUpdateWorker(context: Context, parameters: WorkerParameters): Corou
         )
 
         val notification = NotificationCompat
+             // The channel ID is ignored by older versions of Android
+             // The constructed Notification will be posted on this NotificationChannel
             .Builder(applicationContext, EPISODE_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_episode_icon)
             .setContentTitle(applicationContext.getString(R.string.episode_notification_title))
-            .setContentText(applicationContext.getString(R.string.episode_notification_text))
-             // Number of items associated with this notification
+            .setContentText(applicationContext.getString(R.string.episode_notification_text,podcastInfo.newCount,podcastInfo.name))
+             // Number of new items associated with
+             // this notification
             .setNumber(podcastInfo.newCount)
              // Clear notification when a user taps on it
             .setAutoCancel(true)
@@ -94,6 +106,7 @@ class EpisodeUpdateWorker(context: Context, parameters: WorkerParameters): Corou
 
         // The notification manager is instructed to notify the user
         // with the notification object created by the builder
+        // Tag and id is used to identify the notification
         notificationManager.notify(podcastInfo.name,0,notification)
     }
 

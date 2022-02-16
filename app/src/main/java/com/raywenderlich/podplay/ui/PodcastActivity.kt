@@ -14,6 +14,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.work.*
@@ -162,6 +163,18 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
             // If the search term is not null, make the call
             performSearch(query)
         }
+
+
+        val podcastFeedUrl = intent.getStringExtra(EpisodeUpdateWorker.EXTRA_FEED_URL)
+        if (podcastFeedUrl != null) {
+            podcastViewModel.viewModelScope.launch {
+                val podcastSummaryViewData = podcastViewModel.setActivePodcast(podcastFeedUrl)
+                podcastSummaryViewData?.let { podcastSummaryView ->
+                    onShowDetails(podcastSummaryView)
+                }
+            }
+        }
+
     }
 
     // Called when the Intent is sent from the search widget, that is,
@@ -217,21 +230,23 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
     // It's called when a user taps on a podcast in the recycler view
     override fun onShowDetails(podcastSummaryViewData: SearchViewModel.PodcastSummaryViewData) {
         // This implementation probably will be changed
+        /*
         podcastSummaryViewData.feedUrl?.let {
             showProgressBar()
             podcastViewModel.getPodcast(podcastSummaryViewData)
         }
+        */
 
-        /*
+
         podcastSummaryViewData.feedUrl ?: return
             showProgressBar()
             podcastViewModel.viewModelScope.launch(Dispatchers.Main) {
                 podcastViewModel.getPodcast(podcastSummaryViewData)
                 hideProgressBar()
                 // There is a problem with this call
-            // showDetailsFragment()
+                showDetailsFragment()
             }
-        */
+
     }
 
     // Subscribing to the LiveData
@@ -308,14 +323,18 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
 
         val podcastDetailsFragment = createPodcastDetailsFragment()
 
-        supportFragmentManager.beginTransaction().add(
-            R.id.podcastDetailsContainer,
-            podcastDetailsFragment,
-            TAG_DETAILS_FRAGMENT
-        )   // Calling addToBackStack() makes sure that the back button works to close the fragment
-            // If you do not add the fragment to back stack and press the back button, the app will close
-            .addToBackStack("DetailsFragment")
-            .commit()
+        // THIS "if" SAVED MY LIFE
+        if (!podcastDetailsFragment.isAdded) {
+            supportFragmentManager.beginTransaction().add(
+                R.id.podcastDetailsContainer,
+                podcastDetailsFragment,
+                TAG_DETAILS_FRAGMENT
+            )   // Calling addToBackStack() makes sure that the back button works to close the fragment
+                // If you do not add the fragment to back stack and press the back button, the app will close
+                .addToBackStack("DetailsFragment")
+                .commit()
+        }
+
 
         // Hides the Recycler View
         binding.podcastRecyclerView.visibility =  View.INVISIBLE
@@ -345,7 +364,7 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
             // Execute only when the device is connected to the internet
             setRequiredNetworkType(NetworkType.CONNECTED)
             // Only executes worker when the device is plugged into a power source
-            setRequiresCharging(true)
+            // setRequiresCharging(true)
         }.build()
 
         // Work to be repeated at set intervals

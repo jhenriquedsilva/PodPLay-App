@@ -30,10 +30,26 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
     // LiveData is always within a ViewModel and is exposed to the UI controller
     val podcastLiveData: LiveData<PodcastViewData?> = _podcastLiveData
 
+
+    suspend fun setActivePodcast(feedUrl: String): SearchViewModel.PodcastSummaryViewData? {
+        val repo = podcastRepo ?: return null
+        val podcast = repo.getPodcast(feedUrl)
+        if (podcast == null) {
+            return null
+        } else {
+            _podcastLiveData.value = podcastToPodcastView(podcast)
+            activePodcast = podcast
+            return podcastToSummaryView(podcast)
+        }
+    }
+
     fun saveActivePodcast() {
         // These null check is done everywhere
         val repo = podcastRepo ?: return
         activePodcast?.let { activePodcast ->
+            // Drops the first episode from the Podcast you are
+            // subscribing to. Written just to test things out
+            // activePodcast.episodes = activePodcast.episodes.drop(1)
             repo.save(activePodcast)
         }
     }
