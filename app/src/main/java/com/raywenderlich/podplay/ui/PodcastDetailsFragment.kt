@@ -1,8 +1,17 @@
 package com.raywenderlich.podplay.ui
 
+import android.content.ComponentName
 import android.content.Context
 import android.os.Bundle
+import android.support.v4.media.MediaBrowserCompat
+import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaControllerCompat
+import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import android.text.method.ScrollingMovementMethod
+import android.util.Log
+import com.raywenderlich.podplay.service.PodplayMediaService
+
 import android.view.*
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -24,11 +33,128 @@ class PodcastDetailsFragment: Fragment() {
         fun onUnsubscribe()
     }
 
+    val TAG = "PodcastDetailsFragment"
     private lateinit var databinding: FragmentPodcastDetailsBinding
     private lateinit var episodeListAdapter: EpisodeListAdapter
     // activityViewModels() provides the same activity that was initialized in the parent activity
     private val podcastViewModel: PodcastViewModel by  activityViewModels()
     private var listener: OnPodcastDetailsListener? = null
+
+    private lateinit var mediaBrowser: MediaBrowserCompat
+    private var mediaControllerCallback: MediaControllerCallback? = null
+
+    // Receive callbacks from the media session every time its state or metadata changes
+    inner class MediaControllerCallback: MediaControllerCompat.Callback() {
+
+        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
+            super.onMetadataChanged(metadata)
+            println("metadata changes to ${metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI)}")
+        }
+
+        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
+            super.onPlaybackStateChanged(state)
+            println("state changed to $state")
+        }
+
+    }
+
+    // Handle connection messages
+    inner class MediaBrowserCallBacks: MediaBrowserCompat.ConnectionCallback() {
+        // If the connection is successful, this method is called
+        // and it creates the MediaController, links it to the MediaSession
+        override fun onConnected() {
+            super.onConnected()
+            registerMediaController(mediaBrowser.sessionToken)
+            Log.d(TAG, "onConnected called")
+        }
+
+        override fun onConnectionSuspended() {
+            super.onConnectionSuspended()
+            println("onConnectionSuspended")
+            // "Disable transport controls"
+        }
+
+        override fun onConnectionFailed() {
+            super.onConnectionFailed()
+            Log.i(TAG,"OnConnectionFailed")
+            // "Fatal error handling"
+        }
+    }
+
+    // Register controller to receive callbacks from the MediaSession
+    private fun registerMediaController(token: MediaSessionCompat.Token) {
+
+        val fragmentActivity = activity as FragmentActivity
+        // Creates the MediaController and connects it to the MediaSession
+        val mediaController = MediaControllerCompat(fragmentActivity, token)
+        // Links the UI control to the MediaController
+        MediaControllerCompat.setMediaController(fragmentActivity,mediaController)
+
+        mediaControllerCallback = MediaControllerCallback()
+        // Register the controller to receive callbacks from the media session
+        mediaController.registerCallback(mediaControllerCallback!!)
+    }
+
+    // Connects the media browser
+    override fun onStart() {
+        super.onStart()
+        // If a configuration change occurs, the media browser remains connected
+        // but it is necessary to create the media controller again, if it is not
+        // null obviously
+        if (mediaBrowser.isConnected) {
+            val fragmentActivity = activity as FragmentActivity
+            if (MediaControllerCompat.getMediaController(fragmentActivity) == null) {
+                registerMediaController(mediaBrowser.sessionToken)
+            }
+        } else {
+            // If not connected, connect
+            // It will register the media controller automatically
+            // by calling onConnected()
+            mediaBrowser.connect()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // The media controller will not receive callbacks anymore
+        val fragmentActivity = activity as FragmentActivity
+        if (MediaControllerCompat.getMediaController(fragmentActivity) != null) {
+            mediaControllerCallback?.let { mediaControllerCallback ->
+                MediaControllerCompat.getMediaController(fragmentActivity)
+                    .unregisterCallback(mediaControllerCallback)
+            }
+        }
+        // MediaBrowser is disconnected
+        // I CREATED THIS LINE. MAYBE IT IS WRONG
+        mediaBrowser.disconnect()
+    }
+
+    // When the media browser is created, it asynchronously connects
+    // th the browser service
+    private fun initMediaBrowser() {
+        // That's the current activity hosting the fragment
+        val fragmentActivity = activity as FragmentActivity
+        // A MediaBrowserCompat object is instantiated
+        mediaBrowser = MediaBrowserCompat(
+            // Current activity hosting the fragment
+            fragmentActivity,
+            // Which component the media browser should connect to
+            ComponentName(fragmentActivity,PodplayMediaService::class.java),
+            // The callback object to receive connection events
+            MediaBrowserCallBacks(),
+            null
+        )
+    }
+
+    // When the fragment is created, it creates a media browser compat
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Informs Android that this Fragment wants to add items to the options menu
+        // This makes the Fragment receives a call to onCreateOptionsMenu
+        setHasOptionsMenu(true)
+        initMediaBrowser()
+    }
+
 
     // When the fragment is attached to its parent activity,
     // this method is called. The context is a reference to
@@ -43,12 +169,6 @@ class PodcastDetailsFragment: Fragment() {
         }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        // Informs Android that this Fragment wants to add items to the options menu
-        // This makes the Fragment receives a call to onCreateOptionsMenu
-        setHasOptionsMenu(true)
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater,

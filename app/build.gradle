@@ -64,6 +64,9 @@ dependencies {
     // WorkManager
     implementation "androidx.work:work-runtime-ktx:2.5.0"
 
+    // MediaBrowserService
+    implementation "androidx.media:media:1.2.1"
+
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'

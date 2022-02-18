@@ -34,6 +34,12 @@
                 android:resource="@xml/searchable"/>
         </activity>
 
+        <service android:name=".service.PodplayMediaService" android:exported="false">
+            <intent-filter>
+                <action android:name="android.media.browse.MeidaBrowserService" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>
