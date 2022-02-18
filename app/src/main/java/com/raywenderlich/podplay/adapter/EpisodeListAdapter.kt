@@ -12,17 +12,31 @@ import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 
 // Adapter of each episode
 class EpisodeListAdapter(
-    private var episodeViewList: List<PodcastViewModel.EpisodeViewData>?
+    private var episodeViewList: List<PodcastViewModel.EpisodeViewData>?,
+    private val episodeListAdapterListener: EpisodeListAdapterListener
 ): RecyclerView.Adapter<EpisodeListAdapter.EpisodeViewHolder>() {
 
-    val TAG = "EpisodeListAdapter"
+    interface EpisodeListAdapterListener {
+        fun onSelectedEpisode(episodeViewData: PodcastViewModel.EpisodeViewData)
+    }
 
     inner class EpisodeViewHolder(
-        val databinding: EpisodeBinding
+        databinding: EpisodeBinding,
+        val episodeListAdapterListener: EpisodeListAdapterListener
     ) : RecyclerView.ViewHolder(databinding.root) {
 
+        init {
+            databinding.root.setOnClickListener {
+                // The episode view data cannot be null because
+                // it is necessary to get the media url
+                episodeViewData?.let { episodeViewData ->
+                    episodeListAdapterListener.onSelectedEpisode(episodeViewData)
+                }
+            }
+        }
 
-        // var episodeViewData: PodcastViewModel.EpisodeViewData? = null
+
+        var episodeViewData: PodcastViewModel.EpisodeViewData? = null
         // With these lines of code, it is not necessary to access the databinding.
         // Just access the class instance proporties
         val titleTextView: TextView = databinding.titleView
@@ -34,7 +48,8 @@ class EpisodeListAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EpisodeViewHolder {
         return EpisodeViewHolder(
-            EpisodeBinding.inflate(LayoutInflater.from(parent.context), parent,false)
+            EpisodeBinding.inflate(LayoutInflater.from(parent.context), parent,false),
+            episodeListAdapterListener
         )
     }
 
@@ -45,7 +60,7 @@ class EpisodeListAdapter(
         val episodeViewList = episodeViewList ?: return
         val episodeViewData = episodeViewList[position]
 
-        // holder.episodeViewData = episodeViewData
+        holder.episodeViewData = episodeViewData
         holder.titleTextView.text = episodeViewData.title
         holder.descTextView.text = HtmlUtils.htmlToSpannable(episodeViewData.description ?: "")
         holder.durationTextView.text = episodeViewData.duration

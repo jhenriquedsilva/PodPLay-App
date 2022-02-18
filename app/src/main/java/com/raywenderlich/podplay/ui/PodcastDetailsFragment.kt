@@ -2,6 +2,7 @@ package com.raywenderlich.podplay.ui
 
 import android.content.ComponentName
 import android.content.Context
+import android.net.Uri
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
@@ -26,7 +27,7 @@ import com.raywenderlich.podplay.databinding.FragmentPodcastDetailsBinding
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 import java.lang.RuntimeException
 
-class PodcastDetailsFragment: Fragment() {
+class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterListener {
 
     interface OnPodcastDetailsListener {
         fun onSubscribe()
@@ -114,21 +115,6 @@ class PodcastDetailsFragment: Fragment() {
         }
     }
 
-    override fun onStop() {
-        super.onStop()
-        // The media controller will not receive callbacks anymore
-        val fragmentActivity = activity as FragmentActivity
-        if (MediaControllerCompat.getMediaController(fragmentActivity) != null) {
-            mediaControllerCallback?.let { mediaControllerCallback ->
-                MediaControllerCompat.getMediaController(fragmentActivity)
-                    .unregisterCallback(mediaControllerCallback)
-            }
-        }
-        // MediaBrowser is disconnected
-        // I CREATED THIS LINE. MAYBE IT IS WRONG
-        mediaBrowser.disconnect()
-    }
-
     // When the media browser is created, it asynchronously connects
     // th the browser service
     private fun initMediaBrowser() {
@@ -155,6 +141,44 @@ class PodcastDetailsFragment: Fragment() {
         initMediaBrowser()
     }
 
+    private fun startPlaying(episodeViewData: PodcastViewModel.EpisodeViewData) {
+        val fragmentActivity = activity as FragmentActivity
+        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+        // The call to playFromUri() triggers the onPlayFromUri callback in PodplayMediaService
+        controller.transportControls.playFromUri(Uri.parse(episodeViewData.mediaUrl), null)
+    }
+    override fun onSelectedEpisode(episodeViewData: PodcastViewModel.EpisodeViewData) {
+
+        // Assign activity to a local variable because it can change to null between calls
+        val fragmentActivity = activity as FragmentActivity
+        // Get the media controller previously assigned to the media controller
+        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+
+        if (controller.playbackState != null) {
+            if (controller.playbackState.state == PlaybackStateCompat.STATE_PLAYING) {
+                controller.transportControls.pause()
+            } else {
+                startPlaying(episodeViewData)
+            }
+        } else {
+            startPlaying(episodeViewData)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // The media controller will not receive callbacks anymore
+        val fragmentActivity = activity as FragmentActivity
+        if (MediaControllerCompat.getMediaController(fragmentActivity) != null) {
+            mediaControllerCallback?.let { mediaControllerCallback ->
+                MediaControllerCompat.getMediaController(fragmentActivity)
+                    .unregisterCallback(mediaControllerCallback)
+            }
+        }
+        // MediaBrowser is disconnected
+        // I CREATED THIS LINE. MAYBE IT IS WRONG
+        mediaBrowser.disconnect()
+    }
 
     // When the fragment is attached to its parent activity,
     // this method is called. The context is a reference to
@@ -209,7 +233,7 @@ class PodcastDetailsFragment: Fragment() {
                 )
                 databinding.episodeRecyclerView.addItemDecoration(dividerItemDecoration)
 
-                episodeListAdapter = EpisodeListAdapter(podcastViewData.episodes)
+                episodeListAdapter = EpisodeListAdapter(podcastViewData.episodes, this)
                 databinding.episodeRecyclerView.adapter = episodeListAdapter
 
                 // Declares the option menu has changes,
@@ -268,6 +292,7 @@ class PodcastDetailsFragment: Fragment() {
         // That's a static function
         fun newInstance(): PodcastDetailsFragment { return PodcastDetailsFragment() }
     }
+
 
 
 }
