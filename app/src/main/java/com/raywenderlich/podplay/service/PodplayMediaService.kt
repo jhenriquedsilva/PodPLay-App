@@ -14,10 +14,12 @@ class PodplayMediaService: MediaBrowserServiceCompat() {
     // It responds to other apps interactions
     private lateinit var mediaSession: MediaSessionCompat
 
+    // The media session should be created and initialized
     override fun onCreate() {
         super.onCreate()
         createMediaSession()
     }
+
 
     // When the service first starts, a media session should be created
     // These three steps are done everytime the onCreate method is called

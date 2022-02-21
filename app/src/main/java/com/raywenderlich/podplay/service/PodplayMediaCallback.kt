@@ -16,11 +16,11 @@ import android.util.Log
 
 class PodplayMediaCallback(
     val context: Context,
-    val mediaSession: MediaSessionCompat,
-    var mediaPlayer: MediaPlayer? = null
+    private val mediaSession: MediaSessionCompat,
+    private var mediaPlayer: MediaPlayer? = null
 ): MediaSessionCompat.Callback() {
 
-    val TAG = "PodplayMediaCallback"
+    private val TAG = "Testing"
     // Keeps track of the currently playing media item
     private var mediaUri: Uri? = null
     // Indicates if the item is new
@@ -111,6 +111,7 @@ class PodplayMediaCallback(
     // commands are processed
     private fun setState(state: Int) {
         var position: Long = -1
+
         mediaPlayer?.let { mediaPlayer ->
             position = mediaPlayer.currentPosition.toLong()
         }
@@ -118,12 +119,14 @@ class PodplayMediaCallback(
         val playbackState = PlaybackStateCompat.Builder()
             // Specifies all the states the Media Session will allow
             .setActions(
+                // The valid controller actions
+                // that can be handled in the present state
                 PlaybackStateCompat.ACTION_PLAY or
                 PlaybackStateCompat.ACTION_STOP or
                 PlaybackStateCompat.ACTION_PLAY_PAUSE or
                 PlaybackStateCompat.ACTION_PAUSE
             )
-            .setState(state,position,1.0f)
+            .setState(state, position,1.0f)
             .build()
 
         // If there is a state change, this method should be called
@@ -133,11 +136,13 @@ class PodplayMediaCallback(
     private fun initializeMediaPlayer() {
         if (mediaPlayer == null) {
             mediaPlayer = MediaPlayer()
-            mediaPlayer?.setOnCompletionListener {setState(PlaybackStateCompat.STATE_PAUSED)}
+            // When the playback is finished, this code is executed
+            mediaPlayer?.setOnCompletionListener { setState(PlaybackStateCompat.STATE_PAUSED) }
         }
     }
 
     private fun prepareMedia() {
+        // Only the data is new
         if (newMedia) {
             newMedia = false
             mediaPlayer?.let { mediaPlayer ->
@@ -145,12 +150,15 @@ class PodplayMediaCallback(
                     // Back to uninitialized state
                     mediaPlayer.reset()
                     // The media that will be played
-                    mediaPlayer.setDataSource(context,mediaUri)
+                    mediaPlayer.setDataSource(context, mediaUri)
                     // Puts media player on an initialized state
+                    // Blocks until media player is ready for playback
                     mediaPlayer.prepare()
+                    // Everytime the metadata changes,
+                    // you should set it again to the media session
                     mediaSession.setMetadata(
                         MediaMetadataCompat.Builder()
-                            .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI,mediaUri.toString())
+                            .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, mediaUri.toString())
                             .build()
                     )
                 }
@@ -210,10 +218,13 @@ class PodplayMediaCallback(
                 .build()
         )
         */
+        Log.d(TAG, "ONPLAYFROMURI CALLED")
     }
 
 
     // Should call startService()
+    // These are only callbacks.
+    // The actual logic to play the podcasts is my responsibility
     override fun onPlay() {
         super.onPlay()
 
@@ -226,13 +237,13 @@ class PodplayMediaCallback(
             startPlaying()
         }
 
-        Log.d(TAG,"onPlay called")
+        Log.d(TAG, "ONPLAY CALLED")
     }
 
     override fun onPause() {
         super.onPause()
         pausePlaying()
-        Log.d(TAG,"onPause called")
+        Log.d(TAG, "ONPAUSE CALLED")
     }
 
     // Should call stopSelf()
@@ -240,7 +251,7 @@ class PodplayMediaCallback(
         super.onStop()
         stopPlaying()
 
-        println("onStop called")
+        Log.d(TAG, "ONSTOP CALLED")
     }
 
 

@@ -34,7 +34,7 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         fun onUnsubscribe()
     }
 
-    val TAG = "PodcastDetailsFragment"
+    private val TAG = "Testing"
     private lateinit var databinding: FragmentPodcastDetailsBinding
     private lateinit var episodeListAdapter: EpisodeListAdapter
     // activityViewModels() provides the same activity that was initialized in the parent activity
@@ -49,12 +49,14 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
 
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
             super.onMetadataChanged(metadata)
-            println("metadata changes to ${metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI)}")
+            Log.d(TAG, "ONMETADATACHANGED CALLED")
+            Log.i(TAG,"Metadata changed to ${metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI)}")
         }
 
         override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
             super.onPlaybackStateChanged(state)
-            println("state changed to $state")
+            Log.d(TAG, "ONPLAYBACKSTATECHANGED CALLED")
+            Log.d(TAG,"State changed to $state")
         }
 
     }
@@ -66,18 +68,18 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         override fun onConnected() {
             super.onConnected()
             registerMediaController(mediaBrowser.sessionToken)
-            Log.d(TAG, "onConnected called")
+            Log.d(TAG, "ONCONNECTED CALLED")
         }
 
         override fun onConnectionSuspended() {
             super.onConnectionSuspended()
-            println("onConnectionSuspended")
+            Log.d(TAG, "ONCONNECTIONSUSPENDED CALLED")
             // "Disable transport controls"
         }
 
         override fun onConnectionFailed() {
             super.onConnectionFailed()
-            Log.i(TAG,"OnConnectionFailed")
+            Log.d(TAG,"ONCONNECTIONFAILED CALLED")
             // "Fatal error handling"
         }
     }
@@ -115,9 +117,8 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         }
     }
 
-    // When the media browser is created, it asynchronously connects
-    // th the browser service
-    private fun initMediaBrowser() {
+    // Media browser is created
+    private fun initializeMediaBrowser() {
         // That's the current activity hosting the fragment
         val fragmentActivity = activity as FragmentActivity
         // A MediaBrowserCompat object is instantiated
@@ -138,7 +139,7 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         // Informs Android that this Fragment wants to add items to the options menu
         // This makes the Fragment receives a call to onCreateOptionsMenu
         setHasOptionsMenu(true)
-        initMediaBrowser()
+        initializeMediaBrowser()
     }
 
     private fun startPlaying(episodeViewData: PodcastViewModel.EpisodeViewData) {
@@ -147,6 +148,7 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         // The call to playFromUri() triggers the onPlayFromUri callback in PodplayMediaService
         controller.transportControls.playFromUri(Uri.parse(episodeViewData.mediaUrl), null)
     }
+
     override fun onSelectedEpisode(episodeViewData: PodcastViewModel.EpisodeViewData) {
 
         // Assign activity to a local variable because it can change to null between calls
@@ -160,6 +162,7 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
             } else {
                 startPlaying(episodeViewData)
             }
+
         } else {
             startPlaying(episodeViewData)
         }
@@ -169,7 +172,9 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         super.onStop()
         // The media controller will not receive callbacks anymore
         val fragmentActivity = activity as FragmentActivity
-        if (MediaControllerCompat.getMediaController(fragmentActivity) != null) {
+        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+        if (controller != null) {
+            controller.transportControls.stop()
             mediaControllerCallback?.let { mediaControllerCallback ->
                 MediaControllerCompat.getMediaController(fragmentActivity)
                     .unregisterCallback(mediaControllerCallback)
@@ -179,6 +184,14 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         // I CREATED THIS LINE. MAYBE IT IS WRONG
         mediaBrowser.disconnect()
     }
+
+
+
+
+
+
+
+
 
     // When the fragment is attached to its parent activity,
     // this method is called. The context is a reference to
