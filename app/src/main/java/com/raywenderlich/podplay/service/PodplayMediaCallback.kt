@@ -17,11 +17,19 @@ import android.util.Log
 class PodplayMediaCallback(
     val context: Context,
     private val mediaSession: MediaSessionCompat,
-    private var mediaPlayer: MediaPlayer? = null
 ): MediaSessionCompat.Callback() {
+
+    interface PodplayMediaListener {
+        fun onStateChanged()
+        fun onStopPlaying()
+        fun onPausePLaying()
+    }
 
     private val TAG = "Testing"
     // Keeps track of the currently playing media item
+    private var mediaPlayer: MediaPlayer? = null
+    var listener: PodplayMediaListener? = null
+
     private var mediaUri: Uri? = null
     // Indicates if the item is new
     private var newMedia: Boolean = false
@@ -131,6 +139,12 @@ class PodplayMediaCallback(
 
         // If there is a state change, this method should be called
         mediaSession.setPlaybackState(playbackState)
+
+        // onStateChanged is called when the state changes to playing or paused
+        if (state == PlaybackStateCompat.STATE_PAUSED ||
+                state == PlaybackStateCompat.STATE_PLAYING) {
+            listener?.onStateChanged()
+        }
     }
 
     private fun initializeMediaPlayer() {
@@ -156,11 +170,28 @@ class PodplayMediaCallback(
                     mediaPlayer.prepare()
                     // Everytime the metadata changes,
                     // you should set it again to the media session
+                    mediaExtras?.let { mediaExtras ->
+                        // This metadata is used by the notification and the
+                        // other media players to display details about the currently
+                        // playing podcast episode
+                        mediaSession.setMetadata(
+                            MediaMetadataCompat.Builder()
+                                .putString(MediaMetadataCompat.METADATA_KEY_TITLE,
+                                mediaExtras.getString(MediaMetadataCompat.METADATA_KEY_TITLE))
+                                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST,
+                                    mediaExtras.getString(MediaMetadataCompat.METADATA_KEY_ARTIST))
+                                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI,
+                                    mediaExtras.getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI))
+                                .build()
+                        )
+                    }
+                    /*
                     mediaSession.setMetadata(
                         MediaMetadataCompat.Builder()
                             .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, mediaUri.toString())
                             .build()
                     )
+                    */
                 }
             }
         }
@@ -185,6 +216,8 @@ class PodplayMediaCallback(
                 setState(PlaybackStateCompat.STATE_PAUSED)
             }
         }
+        // onPausePlaying is called when the podcast pause playing
+        listener?.onPausePLaying()
     }
 
     private fun stopPlaying() {
@@ -196,6 +229,8 @@ class PodplayMediaCallback(
                 setState(PlaybackStateCompat.STATE_STOPPED)
             }
         }
+        // onStopPlaying() is called when playback stops
+        listener?.onStopPlaying()
     }
 
     override fun onPlayFromUri(uri: Uri?, extras: Bundle?) {

@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
+import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
@@ -145,8 +146,16 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
     private fun startPlaying(episodeViewData: PodcastViewModel.EpisodeViewData) {
         val fragmentActivity = activity as FragmentActivity
         val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+
+        val viewData = podcastViewModel.activePodcastViewData ?: return
+        val bundle = Bundle().apply {
+            putString(MediaMetadataCompat.METADATA_KEY_TITLE, episodeViewData.title)
+            putString(MediaMetadataCompat.METADATA_KEY_ARTIST, viewData.feedTitle)
+            putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, viewData.imageUrl)
+        }
+
         // The call to playFromUri() triggers the onPlayFromUri callback in PodplayMediaService
-        controller.transportControls.playFromUri(Uri.parse(episodeViewData.mediaUrl), null)
+        controller.transportControls.playFromUri(Uri.parse(episodeViewData.mediaUrl), bundle)
     }
 
     override fun onSelectedEpisode(episodeViewData: PodcastViewModel.EpisodeViewData) {
@@ -174,7 +183,7 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         val fragmentActivity = activity as FragmentActivity
         val controller = MediaControllerCompat.getMediaController(fragmentActivity)
         if (controller != null) {
-            controller.transportControls.stop()
+            // controller.transportControls.stop()
             mediaControllerCallback?.let { mediaControllerCallback ->
                 MediaControllerCompat.getMediaController(fragmentActivity)
                     .unregisterCallback(mediaControllerCallback)
@@ -182,7 +191,7 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         }
         // MediaBrowser is disconnected
         // I CREATED THIS LINE. MAYBE IT IS WRONG
-        mediaBrowser.disconnect()
+        // mediaBrowser.disconnect()
     }
 
 
