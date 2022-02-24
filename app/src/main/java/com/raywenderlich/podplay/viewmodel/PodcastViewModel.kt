@@ -20,7 +20,7 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
 
     var podcastRepo: PodcastRepo? = null // Set by the caller
     val podcastDao: PodcastDao = PodPlayDatabase.getInstance(application,viewModelScope).podcastDao()
-    var activePodcastViewData: PodcastViewData? = null // Holds the most recently loaded podcast view data
+    // var activePodcastViewData: PodcastViewData? = null // Holds the most recently loaded podcast view data
     private var activePodcast: Podcast? = null // Holds the currently loaded podcast
     // Holds all the podcasts that are stored in the database
     var livePodcastSummaryData: LiveData<List<SearchViewModel.PodcastSummaryViewData>>? = null
@@ -60,6 +60,7 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
             repo.delete(activePodcast)
         }
     }
+
     // This method returns the podcasts that are stored to be shown on screen
     fun getPodcasts(): LiveData<List<SearchViewModel.PodcastSummaryViewData>>? {
         val repo = podcastRepo ?: return null

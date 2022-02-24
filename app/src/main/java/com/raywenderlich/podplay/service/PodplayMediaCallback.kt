@@ -13,12 +13,13 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 
-
+// Used to get information about the playback
 class PodplayMediaCallback(
     val context: Context,
     private val mediaSession: MediaSessionCompat,
 ): MediaSessionCompat.Callback() {
 
+    // Methods that the MediaBrowserService will execute
     interface PodplayMediaListener {
         fun onStateChanged()
         fun onStopPlaying()
@@ -28,6 +29,7 @@ class PodplayMediaCallback(
     private val TAG = "Testing"
     // Keeps track of the currently playing media item
     private var mediaPlayer: MediaPlayer? = null
+    // This is the MediaBrowserService
     var listener: PodplayMediaListener? = null
 
     private var mediaUri: Uri? = null
@@ -47,7 +49,7 @@ class PodplayMediaCallback(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // How to request audio focus in newer versions of Android
 
-            /**                                            // Want to gain focus
+                                                     // Want to gain focus
             val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                 .run {
 
@@ -61,7 +63,7 @@ class PodplayMediaCallback(
                         )
                     build()
                 }
-            */
+            /**
             // I removed "run" because it returns the last line. So it is possible
             // to do the same without it. Any problems, go back to the piece of code above
 
@@ -75,6 +77,7 @@ class PodplayMediaCallback(
                                 .build()
                     )
                 .build()
+            */
             // The property is set to that request
             this.focusRequest = focusRequest
             // Makes the request
@@ -147,6 +150,23 @@ class PodplayMediaCallback(
         }
     }
 
+
+
+
+    override fun onPlayFromUri(uri: Uri, extras: Bundle) {
+        super.onPlayFromUri(uri, extras)
+        // println("Playing ${uri.toString()}")
+        if (mediaUri == uri) {
+            newMedia = false
+            mediaExtras = null
+        } else {
+            mediaExtras = extras
+            setNewMedia(uri)
+        }
+        onPlay()
+        Log.d(TAG, "ONPLAYFROMURI CALLED")
+    }
+
     private fun initializeMediaPlayer() {
         if (mediaPlayer == null) {
             mediaPlayer = MediaPlayer()
@@ -170,6 +190,7 @@ class PodplayMediaCallback(
                     mediaPlayer.prepare()
                     // Everytime the metadata changes,
                     // you should set it again to the media session
+
                     mediaExtras?.let { mediaExtras ->
                         // This metadata is used by the notification and the
                         // other media players to display details about the currently
@@ -185,13 +206,8 @@ class PodplayMediaCallback(
                                 .build()
                         )
                     }
-                    /*
-                    mediaSession.setMetadata(
-                        MediaMetadataCompat.Builder()
-                            .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, mediaUri.toString())
-                            .build()
-                    )
-                    */
+
+
                 }
             }
         }
@@ -206,56 +222,6 @@ class PodplayMediaCallback(
             }
         }
     }
-
-    private fun pausePlaying() {
-        // First thing to do is removing ths audio focus
-        removeAudioFocus()
-        mediaPlayer?.let { mediaPlayer ->
-            if (mediaPlayer.isPlaying) {
-                mediaPlayer.pause()
-                setState(PlaybackStateCompat.STATE_PAUSED)
-            }
-        }
-        // onPausePlaying is called when the podcast pause playing
-        listener?.onPausePLaying()
-    }
-
-    private fun stopPlaying() {
-        removeAudioFocus()
-        mediaSession.isActive = false
-        mediaPlayer?.let { mediaPlayer ->
-            if (mediaPlayer.isPlaying) {
-                mediaPlayer.stop()
-                setState(PlaybackStateCompat.STATE_STOPPED)
-            }
-        }
-        // onStopPlaying() is called when playback stops
-        listener?.onStopPlaying()
-    }
-
-    override fun onPlayFromUri(uri: Uri?, extras: Bundle?) {
-        super.onPlayFromUri(uri, extras)
-        // println("Playing ${uri.toString()}")
-        if (mediaUri == uri) {
-            newMedia = false
-            mediaExtras = null
-        } else {
-            mediaExtras = extras
-            setNewMedia(uri)
-        }
-        onPlay()
-        // If there is a state change, this should ba called
-        /*
-        mediaSession.setMetadata(
-            // Describes the material that is playing
-            MediaMetadataCompat.Builder()
-                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, uri.toString())
-                .build()
-        )
-        */
-        Log.d(TAG, "ONPLAYFROMURI CALLED")
-    }
-
 
     // Should call startService()
     // These are only callbacks.
@@ -274,11 +240,36 @@ class PodplayMediaCallback(
 
         Log.d(TAG, "ONPLAY CALLED")
     }
+    private fun pausePlaying() {
+        // First thing to do is removing ths audio focus
+        removeAudioFocus()
+        mediaPlayer?.let { mediaPlayer ->
+            if (mediaPlayer.isPlaying) {
+                mediaPlayer.pause()
+                setState(PlaybackStateCompat.STATE_PAUSED)
+            }
+        }
+        // onPausePlaying is called when the podcast pause playing
+        listener?.onPausePLaying()
+    }
 
     override fun onPause() {
         super.onPause()
         pausePlaying()
         Log.d(TAG, "ONPAUSE CALLED")
+    }
+
+    private fun stopPlaying() {
+        removeAudioFocus()
+        mediaSession.isActive = false
+        mediaPlayer?.let { mediaPlayer ->
+            if (mediaPlayer.isPlaying) {
+                mediaPlayer.stop()
+                setState(PlaybackStateCompat.STATE_STOPPED)
+            }
+        }
+        // onStopPlaying() is called when playback stops
+        listener?.onStopPlaying()
     }
 
     // Should call stopSelf()

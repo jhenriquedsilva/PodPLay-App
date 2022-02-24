@@ -1,5 +1,6 @@
 package com.raywenderlich.podplay.service
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -14,6 +15,7 @@ import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -35,6 +37,7 @@ class PodplayMediaService: MediaBrowserServiceCompat(), PodplayMediaCallback.Pod
     private lateinit var mediaSession: MediaSessionCompat
 
     private fun getPausePlayActions(): Pair<NotificationCompat.Action, NotificationCompat.Action> {
+
         val pauseAction = NotificationCompat.Action(
             R.drawable.ic_pause_white,
             getString(R.string.pause),
@@ -53,30 +56,30 @@ class PodplayMediaService: MediaBrowserServiceCompat(), PodplayMediaCallback.Pod
     }
 
     // Checks if the media player is playing media
+    // to decide which action to use: play or pause
     private fun isPlaying(): Boolean {
         return mediaSession.controller.playbackState != null &&
                 mediaSession.controller.playbackState.state ==
                 PlaybackStateCompat.STATE_PLAYING
     }
 
-    // Creates a pending intent that will open PodcastActivity
-    // because the Notification also needs a pending Intent to
-    // launch the main PodcastActivity when the notification is tapped
+    // Starts the podcast activity when the notification is tapped
+    // @SuppressLint("UnspecifiedImmutableFlag")
     private fun getNotificationIntent(): PendingIntent {
         val openActivityIntent =
-            Intent(this, PodcastActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-            }
+            Intent(this, PodcastActivity::class.java)
+                openActivityIntent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
 
         return PendingIntent.getActivity(
             this@PodplayMediaService,
             0,
             openActivityIntent,
+            // How the intent should be used
             PendingIntent.FLAG_CANCEL_CURRENT
         )
     }
 
-    // Creates a notification channel
+    // Creates a notification channel for newer versions of android
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel() {
         val notificationManager =
@@ -92,14 +95,19 @@ class PodplayMediaService: MediaBrowserServiceCompat(), PodplayMediaCallback.Pod
         }
     }
 
+    // Create the notification for the foreground service
     private fun createNotification(
         mediaDescription: MediaDescriptionCompat,
         bitmap: Bitmap?
     ): Notification {
+        // Opens PodcastActivity
         val notificationIntent = getNotificationIntent()
+        // The action are created
         val (pauseAction, playAction) = getPausePlayActions()
-        val notification = NotificationCompat.Builder(
-            this@PodplayMediaService, PLAYER_CHANNEL_ID)
+        //
+        val notification = NotificationCompat.Builder(this@PodplayMediaService, PLAYER_CHANNEL_ID)
+
+        notification
             .setContentTitle(mediaDescription.title)
             .setContentText(mediaDescription.subtitle)
              // Sets the album art to display on the notification
@@ -119,6 +127,8 @@ class PodplayMediaService: MediaBrowserServiceCompat(), PodplayMediaCallback.Pod
             .addAction(if (isPlaying()) pauseAction else playAction)
              // It can display up to five transport controls in the expanded view
             .setStyle(
+                // MediaStyle automatically displays and handles the
+                // playback controls
                 androidx.media.app.NotificationCompat.MediaStyle()
                      // The system uses this as a flag to activate
                      // special features such as showing album artwork
@@ -141,34 +151,48 @@ class PodplayMediaService: MediaBrowserServiceCompat(), PodplayMediaCallback.Pod
         return notification.build()
     }
 
+    override fun onCustomAction(action: String, extras: Bundle?, result: Result<Bundle>) {
+        super.onCustomAction(action, extras, result)
+        Log.d("Testing", "Action got is $action" )
+    }
+
+    // Starts the service and shows the notification
     private fun displayNotification() {
-        if (mediaSession.controller.metadata == null) { return }
+
+        // Shows the notification based on the Metadata
+        if (mediaSession.controller.metadata == null) {
+            return
+        }
 
         // Android O requires a notification channel
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createNotificationChannel()
         }
 
+        // Get the description of this metadata to display
+        // Controller: allows an app to interact with an ongoing media session
         val mediaDescription = mediaSession.controller.metadata.description
 
         GlobalScope.launch {
             // Allow to load the image over the network
+            // The URL class is used to represent address of resources
             val iconUrl = URL(mediaDescription.iconUri.toString())
             // Loads the image from the internet and stores it in the bitmap object
+            // Decode an input stream into a bitmap.
             val bitmap = BitmapFactory.decodeStream(iconUrl.openStream())
+            Log.d("Testing", "Bitmap is equal to null? ${bitmap == null}")
 
             // After the image is loaded, the notification is created using
             // the description of the episode and the album art bitmap
             val notification = createNotification(mediaDescription, bitmap)
 
-            // Starts the service in foreground mode
             ContextCompat.startForegroundService(
                 this@PodplayMediaService,
-                Intent(this@PodplayMediaService,PodplayMediaService::class.java)
+                Intent(this@PodplayMediaService, PodplayMediaService::class.java)
             )
 
             // Displays the notification icon
-            startForeground(PodplayMediaService.NOTIFICATION_ID, notification)
+            startForeground(NOTIFICATION_ID, notification)
         }
     }
 
@@ -181,13 +205,18 @@ class PodplayMediaService: MediaBrowserServiceCompat(), PodplayMediaCallback.Pod
     // Stops the service and removes it from the
     // foreground
     override fun onStopPlaying() {
+        // Stop the service
         stopSelf()
+        // Remove this service from foreground state, allowing it to be killed
+        // if more memory is needed. This does not stop the service from running
         stopForeground(true)
     }
 
     // Only removes the service from the foreground
     // but does not remove the notification
     override fun onPausePLaying() {
+        // Remove this service from foreground state, allowing it to be killed
+        // if more memory is needed. This does not stop the service from running
         stopForeground(false)
     }
 
@@ -207,12 +236,13 @@ class PodplayMediaService: MediaBrowserServiceCompat(), PodplayMediaCallback.Pod
         // Lack od PlaybackStateCompat
         // The last parameter is set to null by default
         val callback = PodplayMediaCallback(this, mediaSession)
+        // The service will listen for callbacks
         callback.listener = this
         mediaSession.setCallback(callback)
     }
 
-    // Stop the playback if the user dismisses the app
-    // from the recent applications list
+    // Called when the user dismisses the app from the recent
+    // applications list
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         mediaSession.controller.transportControls.stop()

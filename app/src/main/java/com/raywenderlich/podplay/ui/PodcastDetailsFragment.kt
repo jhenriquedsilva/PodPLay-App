@@ -50,8 +50,7 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
 
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
             super.onMetadataChanged(metadata)
-            Log.d(TAG, "ONMETADATACHANGED CALLED")
-            Log.i(TAG,"Metadata changed to ${metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI)}")
+            Log.d(TAG,"Metadata changed to ${metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE)}")
         }
 
         override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
@@ -147,7 +146,10 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         val fragmentActivity = activity as FragmentActivity
         val controller = MediaControllerCompat.getMediaController(fragmentActivity)
 
-        val viewData = podcastViewModel.activePodcastViewData ?: return
+        // Pass in the additional episode details and add them to the media session metadata
+        // ViewData is the podcast data and episodeViewData is the episode data
+        val viewData = podcastViewModel.podcastLiveData.value ?: return
+        // Bundle is a way send data
         val bundle = Bundle().apply {
             putString(MediaMetadataCompat.METADATA_KEY_TITLE, episodeViewData.title)
             putString(MediaMetadataCompat.METADATA_KEY_ARTIST, viewData.feedTitle)
