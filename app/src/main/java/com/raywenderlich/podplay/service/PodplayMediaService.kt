@@ -151,11 +151,6 @@ class PodplayMediaService: MediaBrowserServiceCompat(), PodplayMediaCallback.Pod
         return notification.build()
     }
 
-    override fun onCustomAction(action: String, extras: Bundle?, result: Result<Bundle>) {
-        super.onCustomAction(action, extras, result)
-        Log.d("Testing", "Action got is $action" )
-    }
-
     // Starts the service and shows the notification
     private fun displayNotification() {
 
