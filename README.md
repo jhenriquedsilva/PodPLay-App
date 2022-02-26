@@ -33,5 +33,3 @@ Existem mais pacotes que os listados abaixo. Em breve farei a atualização.
   Estão as classes que fazem a intermediação dos dados que serão mostrados na UI.
   
 
-Peço que seja testado o código da master, porque vou continuar alterando o código da
-outra branch para fazer um posterior merge
