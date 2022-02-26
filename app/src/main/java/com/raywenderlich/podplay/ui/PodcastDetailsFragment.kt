@@ -5,7 +5,6 @@ import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
-import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
@@ -26,6 +25,7 @@ import com.raywenderlich.podplay.R
 import com.raywenderlich.podplay.adapter.EpisodeListAdapter
 import com.raywenderlich.podplay.databinding.FragmentPodcastDetailsBinding
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
+import com.raywenderlich.podplay.viewmodel.PodcastViewModel.EpisodeViewData
 import java.lang.RuntimeException
 
 class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterListener {
@@ -33,10 +33,11 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
     interface OnPodcastDetailsListener {
         fun onSubscribe()
         fun onUnsubscribe()
+        fun onShowEpisodePlayer(episodeViewData: EpisodeViewData)
     }
 
     private val TAG = "Testing"
-    private lateinit var databinding: FragmentPodcastDetailsBinding
+    private lateinit var layout: FragmentPodcastDetailsBinding
     private lateinit var episodeListAdapter: EpisodeListAdapter
     // activityViewModels() provides the same activity that was initialized in the parent activity
     private val podcastViewModel: PodcastViewModel by  activityViewModels()
@@ -160,8 +161,10 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         controller.transportControls.playFromUri(Uri.parse(episodeViewData.mediaUrl), bundle)
     }
 
-    override fun onSelectedEpisode(episodeViewData: PodcastViewModel.EpisodeViewData) {
+    override fun onSelectedEpisode(episodeViewData: EpisodeViewData) {
 
+        listener?.onShowEpisodePlayer(episodeViewData)
+        /*
         // Assign activity to a local variable because it can change to null between calls
         val fragmentActivity = activity as FragmentActivity
         // Get the media controller previously assigned to the media controller
@@ -177,6 +180,7 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         } else {
             startPlaying(episodeViewData)
         }
+        */
     }
 
     override fun onStop() {
@@ -223,8 +227,8 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        databinding = FragmentPodcastDetailsBinding.inflate(inflater,container,false)
-        return databinding.root
+        layout = FragmentPodcastDetailsBinding.inflate(inflater,container,false)
+        return layout.root
     }
 
     // After the view is created, the data is loaded
@@ -239,26 +243,26 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         // Everytime there is a data change, the fragment UI is updated
         val podcastViewDataObserver = Observer<PodcastViewModel.PodcastViewData?> { podcastViewData ->
             if (podcastViewData != null) {
-                databinding.feedTitleTextView.text = podcastViewData.feedTitle
-                databinding.feedDescTextView.text = podcastViewData.feedDesc
+                layout.feedTitleTextView.text = podcastViewData.feedTitle
+                layout.feedDescTextView.text = podcastViewData.feedDesc
                 activity?.let { activity ->
-                    Glide.with(activity).load(podcastViewData.imageUrl).into(databinding.feedImageView)
+                    Glide.with(activity).load(podcastViewData.imageUrl).into(layout.feedImageView)
                 }
 
-                databinding.feedDescTextView.movementMethod = ScrollingMovementMethod()
+                layout.feedDescTextView.movementMethod = ScrollingMovementMethod()
 
-                databinding.episodeRecyclerView.setHasFixedSize(true)
+                layout.episodeRecyclerView.setHasFixedSize(true)
                 val layoutManager = LinearLayoutManager(activity)
-                databinding.episodeRecyclerView.layoutManager = layoutManager
+                layout.episodeRecyclerView.layoutManager = layoutManager
 
                 val dividerItemDecoration = DividerItemDecoration(
-                    databinding.episodeRecyclerView.context,
+                    layout.episodeRecyclerView.context,
                     layoutManager.orientation
                 )
-                databinding.episodeRecyclerView.addItemDecoration(dividerItemDecoration)
+                layout.episodeRecyclerView.addItemDecoration(dividerItemDecoration)
 
                 episodeListAdapter = EpisodeListAdapter(podcastViewData.episodes, this)
-                databinding.episodeRecyclerView.adapter = episodeListAdapter
+                layout.episodeRecyclerView.adapter = episodeListAdapter
 
                 // Declares the option menu has changes,
                 // so it needs to be recreated

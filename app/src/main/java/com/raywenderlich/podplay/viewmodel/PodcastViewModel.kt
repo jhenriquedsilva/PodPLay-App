@@ -22,6 +22,7 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
     val podcastDao: PodcastDao = PodPlayDatabase.getInstance(application,viewModelScope).podcastDao()
     // var activePodcastViewData: PodcastViewData? = null // Holds the most recently loaded podcast view data
     private var activePodcast: Podcast? = null // Holds the currently loaded podcast
+    var activeEpisodeViewData: EpisodeViewData? = null
     // Holds all the podcasts that are stored in the database
     var livePodcastSummaryData: LiveData<List<SearchViewModel.PodcastSummaryViewData>>? = null
     // MutableLiveData is used to set the value, because it is the only one

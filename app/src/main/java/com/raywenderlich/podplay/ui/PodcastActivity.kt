@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -23,7 +22,6 @@ import com.raywenderlich.podplay.adapter.PodcastListAdapter
 import com.raywenderlich.podplay.databinding.ActivityPodcastBinding
 import com.raywenderlich.podplay.repository.ItunesRepo
 import com.raywenderlich.podplay.repository.PodcastRepo
-import com.raywenderlich.podplay.service.FeedService
 import com.raywenderlich.podplay.service.ItunesService
 import com.raywenderlich.podplay.service.RssFeedService
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
@@ -34,9 +32,9 @@ import java.util.concurrent.TimeUnit
 
 class PodcastActivity : AppCompatActivity(),
     PodcastListAdapter.PodcastListAdapterListener,
-PodcastDetailsFragment.OnPodcastDetailsListener{
+PodcastDetailsFragment.OnPodcastDetailsListener {
 
-    private lateinit var binding: ActivityPodcastBinding
+    private lateinit var layout: ActivityPodcastBinding
     private val searchViewModel by viewModels<SearchViewModel>()
     // Used to hold the podcast view data
     private val podcastViewModel by viewModels<PodcastViewModel>()
@@ -49,8 +47,8 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // How to create a view using binding
-        binding = ActivityPodcastBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        layout = ActivityPodcastBinding.inflate(layoutInflater)
+        setContentView(layout.root)
         setupToolbar()
         setupViewModels()
         updateControls()
@@ -69,7 +67,7 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
         val podcasts = podcastViewModel.getPodcasts()?.value
 
         if (podcasts != null) {
-            binding.toolbar.title = getString(R.string.subscribed_podcasts)
+            layout.toolbar.title = getString(R.string.subscribed_podcasts)
             podcastListAdapter.setSearchData(podcasts)
         }
     }
@@ -117,7 +115,7 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
         // configuration change. If the user is in the details fragment and
         // and they rotate the device, the recycler view keeps hidden
         if (supportFragmentManager.backStackEntryCount > 0) {
-            binding.podcastRecyclerView.visibility = View.INVISIBLE
+            layout.podcastRecyclerView.visibility = View.INVISIBLE
         }
 
         /**
@@ -125,7 +123,7 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
          * when the fragment is added. So it is necessary to make sure that the
          * searchMenuItem remains invisible while the recyclerView is invisible
          */
-        if (binding.podcastRecyclerView.visibility == View.INVISIBLE) {
+        if (layout.podcastRecyclerView.visibility == View.INVISIBLE) {
             searchMenuItem.isVisible = false
         }
 
@@ -146,7 +144,7 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
             // in this case, changindd to UI thread
             withContext(Dispatchers.Main) {
                 hideProgressBar()
-                binding.toolbar.title = term
+                layout.toolbar.title = term
                 // The recycler view is populated again
                 podcastListAdapter.setSearchData(results)
             }
@@ -196,7 +194,7 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
     // Showing the podcast results to the user feature 2
     private fun setupToolbar() {
         // This method makes a toolbar act as an action bar for this Activity
-        setSupportActionBar(binding.toolbar)
+        setSupportActionBar(layout.toolbar)
     }
 
     private fun setupViewModels() {
@@ -212,19 +210,19 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
     // Sets up the recycler view
     private fun updateControls() {
 
-        binding.podcastRecyclerView.setHasFixedSize(true)
+        layout.podcastRecyclerView.setHasFixedSize(true)
 
         val layoutManager = LinearLayoutManager(this)
-        binding.podcastRecyclerView.layoutManager = layoutManager
+        layout.podcastRecyclerView.layoutManager = layoutManager
 
         val dividerItemDecoration = DividerItemDecoration(
-            binding.podcastRecyclerView.context,
+            layout.podcastRecyclerView.context,
             layoutManager.orientation
         )
-        binding.podcastRecyclerView.addItemDecoration(dividerItemDecoration)
+        layout.podcastRecyclerView.addItemDecoration(dividerItemDecoration)
 
         podcastListAdapter = PodcastListAdapter(null, this, this)
-        binding.podcastRecyclerView.adapter = podcastListAdapter
+        layout.podcastRecyclerView.adapter = podcastListAdapter
     }
 
     // It's called when a user taps on a podcast in the recycler view
@@ -276,11 +274,11 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
     }
 
     private fun showProgressBar() {
-        binding.progressBar.visibility = View.VISIBLE
+        layout.progressBar.visibility = View.VISIBLE
     }
 
     private fun hideProgressBar() {
-        binding.progressBar.visibility = View.INVISIBLE
+        layout.progressBar.visibility = View.INVISIBLE
     }
 
     // End of showing the podcasts to the user
@@ -297,7 +295,7 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
         supportFragmentManager.addOnBackStackChangedListener {
             // When backStackEntryCount is 0, all Fragments have been removed
             if (supportFragmentManager.backStackEntryCount == 0) {
-                binding.podcastRecyclerView.visibility = View.VISIBLE
+                layout.podcastRecyclerView.visibility = View.VISIBLE
             }
         }
     }
@@ -337,7 +335,7 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
 
 
         // Hides the Recycler View
-        binding.podcastRecyclerView.visibility =  View.INVISIBLE
+        layout.podcastRecyclerView.visibility =  View.INVISIBLE
         // Hides the search menu
         searchMenuItem.isVisible = false
     }
@@ -356,6 +354,44 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
     override fun onUnsubscribe() {
         podcastViewModel.deleteActivePodcast()
         supportFragmentManager.popBackStack()
+    }
+
+    private fun createEpisodePlayerFragment(): EpisodePlayerFragment {
+
+        // First of all, try to find it. If it already exists, just return it
+        // otherwise create a new one
+        var episodePlayerFragment = supportFragmentManager.findFragmentByTag(TAG_PLAYER_FRAGMENT)
+                as EpisodePlayerFragment?
+
+        if (episodePlayerFragment == null) {
+            episodePlayerFragment = EpisodePlayerFragment.newInstance()
+        }
+        return episodePlayerFragment
+    }
+
+    private fun showPlayerFragment() {
+        val episodePlayerFragment = createEpisodePlayerFragment()
+
+        if (!(episodePlayerFragment.isAdded)) {
+
+        supportFragmentManager.beginTransaction().replace(
+            R.id.podcastDetailsContainer,
+            episodePlayerFragment,
+            TAG_PLAYER_FRAGMENT
+        )
+            .addToBackStack("PlayerFragment")
+            .commit()
+
+        }
+
+        layout.podcastRecyclerView.visibility = View.INVISIBLE
+        searchMenuItem.isVisible = false
+    }
+
+    override fun onShowEpisodePlayer(episodeViewData: PodcastViewModel.EpisodeViewData) {
+        // Probably this value will be accessed by the Fragment later
+        podcastViewModel.activeEpisodeViewData = episodeViewData
+        showPlayerFragment()
     }
 
     private fun scheduleJobs() {
@@ -391,6 +427,7 @@ PodcastDetailsFragment.OnPodcastDetailsListener{
         // This tag uniquely identifies the details Fragment in the Fragment Manager
         private const val TAG_DETAILS_FRAGMENT = "DetailsFragment"
         private const val TAG_EPISODE_UPDATE_JOB = "com.raywenderlich.podplay.episodes"
+        private const val TAG_PLAYER_FRAGMENT = "PlayerFragment"
     }
 
 }
