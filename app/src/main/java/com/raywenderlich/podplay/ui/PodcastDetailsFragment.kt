@@ -9,6 +9,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.text.Html
 import android.text.method.ScrollingMovementMethod
 import android.util.Log
 import com.raywenderlich.podplay.service.PodplayMediaService
@@ -24,6 +25,7 @@ import com.bumptech.glide.Glide
 import com.raywenderlich.podplay.R
 import com.raywenderlich.podplay.adapter.EpisodeListAdapter
 import com.raywenderlich.podplay.databinding.FragmentPodcastDetailsBinding
+import com.raywenderlich.podplay.util.HtmlUtils
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel.EpisodeViewData
 import java.lang.RuntimeException
@@ -36,103 +38,12 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         fun onShowEpisodePlayer(episodeViewData: EpisodeViewData)
     }
 
-    private val TAG = "Testing"
     private lateinit var layout: FragmentPodcastDetailsBinding
     private lateinit var episodeListAdapter: EpisodeListAdapter
     // activityViewModels() provides the same activity that was initialized in the parent activity
     private val podcastViewModel: PodcastViewModel by  activityViewModels()
     private var listener: OnPodcastDetailsListener? = null
 
-    private lateinit var mediaBrowser: MediaBrowserCompat
-    private var mediaControllerCallback: MediaControllerCallback? = null
-
-    // Receive callbacks from the media session every time its state or metadata changes
-    inner class MediaControllerCallback: MediaControllerCompat.Callback() {
-
-        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-            super.onMetadataChanged(metadata)
-            Log.d(TAG,"Metadata changed to ${metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE)}")
-        }
-
-        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-            super.onPlaybackStateChanged(state)
-            Log.d(TAG, "ONPLAYBACKSTATECHANGED CALLED")
-            Log.d(TAG,"State changed to $state")
-        }
-
-    }
-
-    // Handle connection messages
-    inner class MediaBrowserCallBacks: MediaBrowserCompat.ConnectionCallback() {
-        // If the connection is successful, this method is called
-        // and it creates the MediaController, links it to the MediaSession
-        override fun onConnected() {
-            super.onConnected()
-            registerMediaController(mediaBrowser.sessionToken)
-            Log.d(TAG, "ONCONNECTED CALLED")
-        }
-
-        override fun onConnectionSuspended() {
-            super.onConnectionSuspended()
-            Log.d(TAG, "ONCONNECTIONSUSPENDED CALLED")
-            // "Disable transport controls"
-        }
-
-        override fun onConnectionFailed() {
-            super.onConnectionFailed()
-            Log.d(TAG,"ONCONNECTIONFAILED CALLED")
-            // "Fatal error handling"
-        }
-    }
-
-    // Register controller to receive callbacks from the MediaSession
-    private fun registerMediaController(token: MediaSessionCompat.Token) {
-
-        val fragmentActivity = activity as FragmentActivity
-        // Creates the MediaController and connects it to the MediaSession
-        val mediaController = MediaControllerCompat(fragmentActivity, token)
-        // Links the UI control to the MediaController
-        MediaControllerCompat.setMediaController(fragmentActivity,mediaController)
-
-        mediaControllerCallback = MediaControllerCallback()
-        // Register the controller to receive callbacks from the media session
-        mediaController.registerCallback(mediaControllerCallback!!)
-    }
-
-    // Connects the media browser
-    override fun onStart() {
-        super.onStart()
-        // If a configuration change occurs, the media browser remains connected
-        // but it is necessary to create the media controller again, if it is not
-        // null obviously
-        if (mediaBrowser.isConnected) {
-            val fragmentActivity = activity as FragmentActivity
-            if (MediaControllerCompat.getMediaController(fragmentActivity) == null) {
-                registerMediaController(mediaBrowser.sessionToken)
-            }
-        } else {
-            // If not connected, connect
-            // It will register the media controller automatically
-            // by calling onConnected()
-            mediaBrowser.connect()
-        }
-    }
-
-    // Media browser is created
-    private fun initializeMediaBrowser() {
-        // That's the current activity hosting the fragment
-        val fragmentActivity = activity as FragmentActivity
-        // A MediaBrowserCompat object is instantiated
-        mediaBrowser = MediaBrowserCompat(
-            // Current activity hosting the fragment
-            fragmentActivity,
-            // Which component the media browser should connect to
-            ComponentName(fragmentActivity,PodplayMediaService::class.java),
-            // The callback object to receive connection events
-            MediaBrowserCallBacks(),
-            null
-        )
-    }
 
     // When the fragment is created, it creates a media browser compat
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -140,25 +51,6 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         // Informs Android that this Fragment wants to add items to the options menu
         // This makes the Fragment receives a call to onCreateOptionsMenu
         setHasOptionsMenu(true)
-        initializeMediaBrowser()
-    }
-
-    private fun startPlaying(episodeViewData: PodcastViewModel.EpisodeViewData) {
-        val fragmentActivity = activity as FragmentActivity
-        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
-
-        // Pass in the additional episode details and add them to the media session metadata
-        // ViewData is the podcast data and episodeViewData is the episode data
-        val viewData = podcastViewModel.podcastLiveData.value ?: return
-        // Bundle is a way send data
-        val bundle = Bundle().apply {
-            putString(MediaMetadataCompat.METADATA_KEY_TITLE, episodeViewData.title)
-            putString(MediaMetadataCompat.METADATA_KEY_ARTIST, viewData.feedTitle)
-            putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, viewData.imageUrl)
-        }
-
-        // The call to playFromUri() triggers the onPlayFromUri callback in PodplayMediaService
-        controller.transportControls.playFromUri(Uri.parse(episodeViewData.mediaUrl), bundle)
     }
 
     override fun onSelectedEpisode(episodeViewData: EpisodeViewData) {
@@ -181,23 +73,6 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
             startPlaying(episodeViewData)
         }
         */
-    }
-
-    override fun onStop() {
-        super.onStop()
-        // The media controller will not receive callbacks anymore
-        val fragmentActivity = activity as FragmentActivity
-        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
-        if (controller != null) {
-            // controller.transportControls.stop()
-            mediaControllerCallback?.let { mediaControllerCallback ->
-                MediaControllerCompat.getMediaController(fragmentActivity)
-                    .unregisterCallback(mediaControllerCallback)
-            }
-        }
-        // MediaBrowser is disconnected
-        // I CREATED THIS LINE. MAYBE IT IS WRONG
-        // mediaBrowser.disconnect()
     }
 
 
@@ -244,7 +119,8 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         val podcastViewDataObserver = Observer<PodcastViewModel.PodcastViewData?> { podcastViewData ->
             if (podcastViewData != null) {
                 layout.feedTitleTextView.text = podcastViewData.feedTitle
-                layout.feedDescTextView.text = podcastViewData.feedDesc
+                val description = podcastViewData.feedDesc ?: ""
+                layout.feedDescTextView.text = HtmlUtils.htmlToSpannable(description)
                 activity?.let { activity ->
                     Glide.with(activity).load(podcastViewData.imageUrl).into(layout.feedImageView)
                 }
