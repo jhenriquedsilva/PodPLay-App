@@ -3,6 +3,7 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/joseh/AndroidStudioProjects/PodPlay/app/src/main/res/drawable/ic_play_pause_toggle.xml" value="0.165" />
         <entry key="..\:/Users/joseh/AndroidStudioProjects/PodPlay/app/src/main/res/layout/activity_podcast.xml" value="0.2" />
         <entry key="..\:/Users/joseh/AndroidStudioProjects/PodPlay/app/src/main/res/layout/episode.xml" value="0.24635416666666668" />
         <entry key="..\:/Users/joseh/AndroidStudioProjects/PodPlay/app/src/main/res/layout/episode_item.xml" value="0.264" />
