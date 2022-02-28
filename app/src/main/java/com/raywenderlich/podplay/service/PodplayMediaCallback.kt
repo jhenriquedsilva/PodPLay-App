@@ -13,8 +13,6 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
-import com.raywenderlich.podplay.ui.PodcastDetailsFragment.Companion.CMD_CHANGE_SPEED
-import com.raywenderlich.podplay.ui.PodcastDetailsFragment.Companion.CMD_EXTRA_SPEED
 import java.lang.Exception
 
 // Used to get information about the playback
@@ -154,7 +152,7 @@ class PodplayMediaCallback(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (newSpeed == null) {
                 // Speed keeps the same if a new one is not supplied
-                speed = mediaPlayer?.getPlaybackParams()?.speed ?: 1.0f
+                speed = mediaPlayer?.playbackParams?.speed ?: 1.0f
             } else {
                 speed = newSpeed
             }
@@ -179,9 +177,9 @@ class PodplayMediaCallback(
                     // So it is necessary to go to the correct position again
                     mediaPlayer.seekTo(position.toInt())
 
-                    // If the state is set to playing, then the player is
-                    // started after the reset. That is, if the user would
-                    // like to play something
+                    // If the state were set to playing, then the player is
+                    // started after the reset. That is, the user was listening
+                    // to a podcast
                     if (state == PlaybackStateCompat.STATE_PLAYING) {
                         mediaPlayer.start()
                     }
@@ -199,6 +197,9 @@ class PodplayMediaCallback(
                         PlaybackStateCompat.ACTION_PLAY_PAUSE or
                         PlaybackStateCompat.ACTION_PAUSE
             )
+                // This speed parameter does not change
+                // the playback speed. It is necessary to change it
+                // directly in the media player
             .setState(state, position, speed)
             .build()
 
@@ -225,6 +226,7 @@ class PodplayMediaCallback(
     // Called by media session when a custom command is received
     override fun onCommand(command: String?, extras: Bundle?, cb: ResultReceiver?) {
         super.onCommand(command, extras, cb)
+
         when (command) {
             CMD_CHANGE_SPEED -> extras?.let { extras -> changeSpeed(extras) }
         }
@@ -343,5 +345,8 @@ class PodplayMediaCallback(
         Log.d(TAG, "ONSTOP CALLED")
     }
 
-
+    companion object {
+        const val CMD_CHANGE_SPEED = "change_speed"
+        const val CMD_EXTRA_SPEED = "speed"
+    }
 }

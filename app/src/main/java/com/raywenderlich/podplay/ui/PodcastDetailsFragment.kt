@@ -193,8 +193,6 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
     }
 
     companion object {
-        const val CMD_CHANGE_SPEED = "change_speed"
-        const val CMD_EXTRA_SPEED = "speed"
         // That's a static function
         fun newInstance(): PodcastDetailsFragment { return PodcastDetailsFragment() }
     }

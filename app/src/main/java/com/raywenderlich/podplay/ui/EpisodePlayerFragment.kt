@@ -19,9 +19,9 @@ import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.activityViewModels
 import com.bumptech.glide.Glide
 import com.raywenderlich.podplay.databinding.FragmentEpisodePlayerBinding
+import com.raywenderlich.podplay.service.PodplayMediaCallback.Companion.CMD_CHANGE_SPEED
+import com.raywenderlich.podplay.service.PodplayMediaCallback.Companion.CMD_EXTRA_SPEED
 import com.raywenderlich.podplay.service.PodplayMediaService
-import com.raywenderlich.podplay.ui.PodcastDetailsFragment.Companion.CMD_CHANGE_SPEED
-import com.raywenderlich.podplay.ui.PodcastDetailsFragment.Companion.CMD_EXTRA_SPEED
 import com.raywenderlich.podplay.util.HtmlUtils
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 
@@ -225,6 +225,7 @@ class EpisodePlayerFragment: Fragment() {
 
     private fun changeSpeed() {
         playerSpeed += 0.25f
+
         if (playerSpeed > 2.0f) {
             playerSpeed = 0.75f
         }
@@ -253,6 +254,8 @@ class EpisodePlayerFragment: Fragment() {
                 changeSpeed()
             }
         } else {
+            // If the phone does not support the feature,
+            // make the button invisible
             layout.speedButton.visibility = View.INVISIBLE
         }
     }
