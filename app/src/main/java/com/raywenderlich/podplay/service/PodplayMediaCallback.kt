@@ -8,10 +8,14 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.ResultReceiver
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
+import com.raywenderlich.podplay.ui.PodcastDetailsFragment.Companion.CMD_CHANGE_SPEED
+import com.raywenderlich.podplay.ui.PodcastDetailsFragment.Companion.CMD_EXTRA_SPEED
+import java.lang.Exception
 
 // Used to get information about the playback
 class PodplayMediaCallback(
@@ -117,41 +121,6 @@ class PodplayMediaCallback(
         newMedia = true
         mediaUri = uri
     }
-    // Sets the current state of the media session
-    // Method used to update the state as playback
-    // commands are processed
-    private fun setState(state: Int) {
-        var position: Long = -1
-
-        mediaPlayer?.let { mediaPlayer ->
-            position = mediaPlayer.currentPosition.toLong()
-        }
-
-        val playbackState = PlaybackStateCompat.Builder()
-            // Specifies all the states the Media Session will allow
-            .setActions(
-                // The valid controller actions
-                // that can be handled in the present state
-                PlaybackStateCompat.ACTION_PLAY or
-                PlaybackStateCompat.ACTION_STOP or
-                PlaybackStateCompat.ACTION_PLAY_PAUSE or
-                PlaybackStateCompat.ACTION_PAUSE
-            )
-            .setState(state, position,1.0f)
-            .build()
-
-        // If there is a state change, this method should be called
-        mediaSession.setPlaybackState(playbackState)
-
-        // onStateChanged is called when the state changes to playing or paused
-        if (state == PlaybackStateCompat.STATE_PAUSED ||
-                state == PlaybackStateCompat.STATE_PLAYING) {
-            listener?.onStateChanged()
-        }
-    }
-
-
-
 
     override fun onPlayFromUri(uri: Uri, extras: Bundle) {
         super.onPlayFromUri(uri, extras)
@@ -165,6 +134,100 @@ class PodplayMediaCallback(
         }
         onPlay()
         Log.d(TAG, "ONPLAYFROMURI CALLED")
+    }
+
+    // Sets the current state of the media session
+    // Method used to update the state as playback
+    // commands are processed
+    private fun setState(state: Int, newSpeed:  Float? = null) {
+        var position: Long = -1
+
+        mediaPlayer?.let { mediaPlayer ->
+            position = mediaPlayer.currentPosition.toLong()
+        }
+
+        // Default speed
+        var speed = 1.0f
+
+        // Speed control was possible from Android Marshmallow
+        // So the code is executed only in this circumstances
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (newSpeed == null) {
+                // Speed keeps the same if a new one is not supplied
+                speed = mediaPlayer?.getPlaybackParams()?.speed ?: 1.0f
+            } else {
+                speed = newSpeed
+            }
+            mediaPlayer?.let { mediaPlayer ->
+                // The assignment can throw an exception.
+                // So it should be surrounded by a try block
+                try {
+                    // Is it necessary to do an assignment? Yes, it is
+                    // If you do not assign a new object, the speed will not change
+                    mediaPlayer.playbackParams = mediaPlayer.playbackParams.setSpeed(speed)
+                } catch (e: Exception) {
+                    // If an exception occurs, the player needs to be reset to clear the state
+                    mediaPlayer.reset()
+                    // The data source should be set again
+                    mediaUri?.let { mediaUri ->
+                        mediaPlayer.setDataSource(context, mediaUri)
+                    }
+                    mediaPlayer.prepare()
+                    // Update the playbackParams again
+                    mediaPlayer.playbackParams = mediaPlayer.playbackParams.setSpeed(speed)
+                    // When the player is reset, its position go back to 0
+                    // So it is necessary to go to the correct position again
+                    mediaPlayer.seekTo(position.toInt())
+
+                    // If the state is set to playing, then the player is
+                    // started after the reset. That is, if the user would
+                    // like to play something
+                    if (state == PlaybackStateCompat.STATE_PLAYING) {
+                        mediaPlayer.start()
+                    }
+                }
+            }
+        }
+
+        val playbackState = PlaybackStateCompat.Builder()
+            // Specifies all the states the Media Session will allow
+            .setActions(
+                // The valid controller actions
+                // that can be handled in the present state
+                PlaybackStateCompat.ACTION_PLAY or
+                        PlaybackStateCompat.ACTION_STOP or
+                        PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                        PlaybackStateCompat.ACTION_PAUSE
+            )
+            .setState(state, position, speed)
+            .build()
+
+        // If there is a state change, this method should be called
+        mediaSession.setPlaybackState(playbackState)
+
+        // onStateChanged is called when the state changes to playing or paused
+        if (state == PlaybackStateCompat.STATE_PAUSED ||
+            state == PlaybackStateCompat.STATE_PLAYING) {
+            listener?.onStateChanged()
+        }
+    }
+
+    // Extracts the speed and calls speed
+    private fun changeSpeed(extras: Bundle) {
+        // Makes sure that the playbackState is not changed
+        var playbackState = PlaybackStateCompat.STATE_PAUSED
+        if (mediaSession.controller.playbackState != null) {
+            playbackState = mediaSession.controller.playbackState.state
+        }
+        setState(playbackState, extras.getFloat(CMD_EXTRA_SPEED))
+    }
+
+    // Called by media session when a custom command is received
+    override fun onCommand(command: String?, extras: Bundle?, cb: ResultReceiver?) {
+        super.onCommand(command, extras, cb)
+        when (command) {
+            CMD_CHANGE_SPEED -> extras?.let { extras -> changeSpeed(extras) }
+        }
     }
 
     private fun initializeMediaPlayer() {
