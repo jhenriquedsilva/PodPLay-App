@@ -2,6 +2,7 @@ package com.raywenderlich.podplay.ui
 
 import android.content.ComponentName
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
@@ -19,6 +20,8 @@ import androidx.fragment.app.activityViewModels
 import com.bumptech.glide.Glide
 import com.raywenderlich.podplay.databinding.FragmentEpisodePlayerBinding
 import com.raywenderlich.podplay.service.PodplayMediaService
+import com.raywenderlich.podplay.ui.PodcastDetailsFragment.Companion.CMD_CHANGE_SPEED
+import com.raywenderlich.podplay.ui.PodcastDetailsFragment.Companion.CMD_EXTRA_SPEED
 import com.raywenderlich.podplay.util.HtmlUtils
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 
@@ -30,6 +33,8 @@ class EpisodePlayerFragment: Fragment() {
     private var mediaControllerCallback: MediaControllerCallback? = null
     // That's the minimum code required to display a fragment
     private lateinit var layout: FragmentEpisodePlayerBinding
+    // Keeps track of the current speed
+    private var playerSpeed: Float = 1.0f
 
     // Receive callbacks from the media session every time its state or metadata changes
     inner class MediaControllerCallback: MediaControllerCompat.Callback() {
@@ -82,7 +87,6 @@ class EpisodePlayerFragment: Fragment() {
             // "Fatal error handling"
         }
     }
-
 
     private fun startPlaying(episodeViewData: PodcastViewModel.EpisodeViewData) {
         val fragmentActivity = activity as FragmentActivity
@@ -186,6 +190,9 @@ class EpisodePlayerFragment: Fragment() {
         val fragmentActivity = activity as FragmentActivity
         Glide.with(fragmentActivity).load(podcastViewModel.podcastLiveData.value?.imageUrl)
             .into(layout.episodeImageView)
+
+        var speedButtonText = "${playerSpeed}x"
+        layout.speedButton.text = speedButtonText
     }
 
     // Controls the start and stop playback
@@ -216,10 +223,37 @@ class EpisodePlayerFragment: Fragment() {
         }
     }
 
+    private fun changeSpeed() {
+        playerSpeed += 0.25f
+        if (playerSpeed > 2.0f) {
+            playerSpeed = 0.75f
+        }
+
+        val bundle = Bundle()
+        bundle.putFloat(CMD_EXTRA_SPEED, playerSpeed)
+
+        val fragmentActivity = activity as FragmentActivity
+        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+        controller.sendCommand(CMD_CHANGE_SPEED, bundle, null)
+
+        val speedButtonText = "${playerSpeed}x"
+        layout.speedButton.text = speedButtonText
+    }
+
     // Sets a listener on toggle button
     private fun setupControls() {
         layout.playToggleButton.setOnClickListener {
             togglePlayPause()
+        }
+
+        // The button is only set up if the Android is greater than
+        // Android Marshmallow
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            layout.speedButton.setOnClickListener {
+                changeSpeed()
+            }
+        } else {
+            layout.speedButton.visibility = View.INVISIBLE
         }
     }
 
