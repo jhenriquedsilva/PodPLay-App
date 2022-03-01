@@ -262,6 +262,8 @@ class PodplayMediaCallback(
                         // playing podcast episode
                         mediaSession.setMetadata(
                             MediaMetadataCompat.Builder()
+                                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION,
+                                mediaPlayer.duration.toLong())
                                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE,
                                 mediaExtras.getString(MediaMetadataCompat.METADATA_KEY_TITLE))
                                 .putString(MediaMetadataCompat.METADATA_KEY_ARTIST,

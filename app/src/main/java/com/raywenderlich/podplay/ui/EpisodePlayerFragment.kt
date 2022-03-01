@@ -1,5 +1,6 @@
 package com.raywenderlich.podplay.ui
 
+import android.animation.ValueAnimator
 import android.content.ComponentName
 import android.net.Uri
 import android.os.Build
@@ -9,11 +10,14 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.text.format.DateUtils
 import android.text.method.ScrollingMovementMethod
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.LinearInterpolator
+import android.widget.SeekBar
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.activityViewModels
@@ -35,6 +39,70 @@ class EpisodePlayerFragment: Fragment() {
     private lateinit var layout: FragmentEpisodePlayerBinding
     // Keeps track of the current speed
     private var playerSpeed: Float = 1.0f
+    private var episodeDuration: Long = 0
+    private var draggingScrubber: Boolean = false
+    private var progressAnimator: ValueAnimator? = null
+
+    // Create the animation and kick it off
+    private fun animateScrubber(progress: Int, speed: Float) {
+        // Normalization happens here                          // toInt() before
+        val timeRemaining = ((episodeDuration - progress) / speed).toLong()
+
+        // Podcast finished
+        if (timeRemaining < 0) { return }
+
+        // Creates a new ValueAnimator with an starting and ending value
+        progressAnimator = ValueAnimator.ofInt(progress, episodeDuration.toInt())
+
+        progressAnimator?.let { progressAnimator ->
+            progressAnimator.duration = timeRemaining
+            progressAnimator.interpolator = LinearInterpolator()
+            // Listener called by the animator on each step of the animation
+            progressAnimator.addUpdateListener {
+                if (draggingScrubber) {
+                    progressAnimator.cancel()
+                } else {
+                    layout.seekBar.progress = progressAnimator.animatedValue as Int
+                }
+            }
+            progressAnimator.start()
+        }
+    }
+
+    // Updates the endTimeTextView
+    private fun updateControlsFromMetadata(metadata: MediaMetadataCompat) {
+        // Returns 0 if there is no number for this key
+        episodeDuration = metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION)
+
+        // Pass the time in seconds and it will be formatted beautifully
+        layout.endTimeTextView.text = DateUtils.formatElapsedTime((episodeDuration / 1000))
+
+        layout.seekBar.max = episodeDuration.toInt()
+    }
+
+    private fun handleStateChange(state: Int, position: Long, speed: Float) {
+        // Stop the animation when the playback stops
+        progressAnimator?.let { animator ->
+            animator.cancel()
+            progressAnimator = null
+        }
+        val isPlaying = (state == PlaybackStateCompat.STATE_PLAYING)
+        // If the media is playing, sets the button state to activated.
+        // Otherwise, sets it to not activated
+        layout.playToggleButton.isActivated = isPlaying
+
+        // Sets the scrubber to the current progress position
+        val progress = position.toInt()
+        layout.seekBar.progress = progress
+        // Updates the speed control label
+        val speedButtonText = "${playerSpeed}x"
+        layout.speedButton.text = speedButtonText
+
+        // If it is playing, create the animation
+        if (isPlaying) {
+            animateScrubber(progress, speed)
+        }
+    }
 
     // Receive callbacks from the media session every time its state or metadata changes
     inner class MediaControllerCallback: MediaControllerCompat.Callback() {
@@ -42,13 +110,8 @@ class EpisodePlayerFragment: Fragment() {
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
             super.onMetadataChanged(metadata)
             Log.d(TAG,"Metadata changed to ${metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE)}")
-        }
 
-        private fun handleStateChange(state: Int) {
-            val isPlaying = (state == PlaybackStateCompat.STATE_PLAYING)
-            // If the media is playing, sets the button state to activated.
-            // Otherwise, sets it to not activated
-            layout.playToggleButton.isActivated = isPlaying
+            metadata?.let { metadata -> updateControlsFromMetadata(metadata) }
         }
 
         // The toggle button is changed over here to be in sync even though
@@ -60,7 +123,8 @@ class EpisodePlayerFragment: Fragment() {
 
             // Changes the toggle's image
             val state = state ?: return
-            handleStateChange(state.state)
+            handleStateChange(state.state, state.position, state.playbackSpeed)
+
         }
 
     }
@@ -72,6 +136,8 @@ class EpisodePlayerFragment: Fragment() {
         override fun onConnected() {
             super.onConnected()
             registerMediaController(mediaBrowser.sessionToken)
+            // If there is a screen rotation, the screen keeps updated
+            updateControlsFromController()
             Log.d(TAG, "ONCONNECTED CALLED")
         }
 
@@ -154,6 +220,8 @@ class EpisodePlayerFragment: Fragment() {
             if (MediaControllerCompat.getMediaController(fragmentActivity) == null) {
                 registerMediaController(mediaBrowser.sessionToken)
             }
+            // Keeps the UI in sync if there is a screen rotation
+            updateControlsFromController()
         } else {
             // If not connected, connect
             // It will register the media controller automatically
@@ -269,6 +337,42 @@ class EpisodePlayerFragment: Fragment() {
 
         layout.forwardButton.setOnClickListener { seekBy(30) }
         layout.replayButton.setOnClickListener { seekBy(-10) }
+
+        layout.seekBar.setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+
+                // If the scrubber position changes, this method is called
+                override fun onProgressChanged(
+                    seekBar: SeekBar?,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
+                    layout.currentTimeTextView.text =
+                        DateUtils.formatElapsedTime((progress / 1000).toLong())
+                }
+
+                // If the scrubber indicator is dragged, this method is called
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    draggingScrubber = true
+                }
+
+                // The user stops dragging the scrubber indicator
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    draggingScrubber = false
+
+                    val fragmentActivity = activity as FragmentActivity
+                    val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+                    if (controller.playbackState != null) {
+                        // Gets the position at the seekBar and sets the position in the media controller
+                        // Seek directly to the new position playback
+                        controller.transportControls.seekTo(seekBar?.progress?.toLong() as Long)
+                    } else {
+                        seekBar?.progress = 0
+                    }
+                }
+
+            }
+        )
     }
 
     // Data must be hooked up after the view is created
@@ -280,8 +384,29 @@ class EpisodePlayerFragment: Fragment() {
         updateControls()
     }
 
+    private fun updateControlsFromController() {
+        val fragmentActivity = activity as FragmentActivity
+        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+
+        if (controller != null) {
+            val metadata = controller.metadata
+            if (metadata != null) {
+                handleStateChange(
+                    controller.playbackState.state,
+                    controller.playbackState.position,
+                    playerSpeed
+                )
+                updateControlsFromMetadata(controller.metadata)
+            }
+        }
+    }
+
+
     override fun onStop() {
         super.onStop()
+
+        progressAnimator?.cancel()
+
         // The media controller will not receive callbacks anymore
         val fragmentActivity = activity as FragmentActivity
         val controller = MediaControllerCompat.getMediaController(fragmentActivity)
