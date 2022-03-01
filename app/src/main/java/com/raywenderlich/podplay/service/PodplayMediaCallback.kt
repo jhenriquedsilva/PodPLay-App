@@ -324,6 +324,24 @@ class PodplayMediaCallback(
         Log.d(TAG, "ONPAUSE CALLED")
     }
 
+    // Method called when the seekTo command is received
+    override fun onSeekTo(pos: Long) {
+        super.onSeekTo(pos)
+
+        mediaPlayer?.seekTo(pos.toInt())
+
+        val playbackState: PlaybackStateCompat? =
+            mediaSession.controller.playbackState
+
+        // Any media browser client should know about the change
+        // in the position
+        if (playbackState != null)  {
+            setState(playbackState.state)
+        } else {
+            setState(PlaybackStateCompat.STATE_PAUSED)
+        }
+    }
+
     private fun stopPlaying() {
         removeAudioFocus()
         mediaSession.isActive = false

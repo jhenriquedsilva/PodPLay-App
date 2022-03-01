@@ -174,27 +174,6 @@ class EpisodePlayerFragment: Fragment() {
 
     }
 
-    // Set up view controls
-    private fun updateControls() {
-        // Sets the title of the episode
-        layout.episodeTitleTextView.text = podcastViewModel.activeEpisodeViewData?.title
-
-        // If the description equal null, empty string
-        val htmlDesc = podcastViewModel.activeEpisodeViewData?.description ?: ""
-        val descSpan = HtmlUtils.htmlToSpannable(htmlDesc)
-        // Sets the description of the episode
-        layout.episodeDescTextView.text = descSpan
-        layout.episodeDescTextView.movementMethod = ScrollingMovementMethod()
-
-        // Loads the podcast image into the image view
-        val fragmentActivity = activity as FragmentActivity
-        Glide.with(fragmentActivity).load(podcastViewModel.podcastLiveData.value?.imageUrl)
-            .into(layout.episodeImageView)
-
-        var speedButtonText = "${playerSpeed}x"
-        layout.speedButton.text = speedButtonText
-    }
-
     // Controls the start and stop playback
     private fun togglePlayPause() {
         val fragmentActivity = activity as FragmentActivity
@@ -241,6 +220,35 @@ class EpisodePlayerFragment: Fragment() {
         layout.speedButton.text = speedButtonText
     }
 
+    private fun seekBy(seconds: Int) {
+        val fragmentActivity = activity as FragmentActivity
+        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+        // The position should be passed to milliseconds
+        val newPosition = controller.playbackState.position + seconds * 1000
+        controller.transportControls.seekTo(newPosition)
+    }
+
+    // Set up the data on screen
+    private fun updateControls() {
+        // Sets the title of the episode
+        layout.episodeTitleTextView.text = podcastViewModel.activeEpisodeViewData?.title
+
+        // If the description equal null, empty string
+        val htmlDesc = podcastViewModel.activeEpisodeViewData?.description ?: ""
+        val descSpan = HtmlUtils.htmlToSpannable(htmlDesc)
+        // Sets the description of the episode
+        layout.episodeDescTextView.text = descSpan
+        layout.episodeDescTextView.movementMethod = ScrollingMovementMethod()
+
+        // Loads the podcast image into the image view
+        val fragmentActivity = activity as FragmentActivity
+        Glide.with(fragmentActivity).load(podcastViewModel.podcastLiveData.value?.imageUrl)
+            .into(layout.episodeImageView)
+
+        var speedButtonText = "${playerSpeed}x"
+        layout.speedButton.text = speedButtonText
+    }
+
     // Sets a listener on toggle button
     private fun setupControls() {
         layout.playToggleButton.setOnClickListener {
@@ -258,6 +266,9 @@ class EpisodePlayerFragment: Fragment() {
             // make the button invisible
             layout.speedButton.visibility = View.INVISIBLE
         }
+
+        layout.forwardButton.setOnClickListener { seekBy(30) }
+        layout.replayButton.setOnClickListener { seekBy(-10) }
     }
 
     // Data must be hooked up after the view is created
