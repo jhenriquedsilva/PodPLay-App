@@ -2,6 +2,10 @@ package com.raywenderlich.podplay.ui
 
 import android.animation.ValueAnimator
 import android.content.ComponentName
+import android.content.Context
+import android.graphics.Color
+import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -14,15 +18,18 @@ import android.text.format.DateUtils
 import android.text.method.ScrollingMovementMethod
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.SurfaceHolder
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import android.widget.SeekBar
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.activityViewModels
 import com.bumptech.glide.Glide
 import com.raywenderlich.podplay.databinding.FragmentEpisodePlayerBinding
+import com.raywenderlich.podplay.service.PodplayMediaCallback
 import com.raywenderlich.podplay.service.PodplayMediaCallback.Companion.CMD_CHANGE_SPEED
 import com.raywenderlich.podplay.service.PodplayMediaCallback.Companion.CMD_EXTRA_SPEED
 import com.raywenderlich.podplay.service.PodplayMediaService
@@ -42,6 +49,13 @@ class EpisodePlayerFragment: Fragment() {
     private var episodeDuration: Long = 0
     private var draggingScrubber: Boolean = false
     private var progressAnimator: ValueAnimator? = null
+    // This media session is specific for videos
+    private var mediaSession: MediaSessionCompat? = null
+    private var mediaPlayer: MediaPlayer? = null
+    // Needs to know if the user taps the play button
+    // before the media is ready to play
+    private var playOnPrepare: Boolean = false
+    private var isVideo: Boolean = false
 
     // Create the animation and kick it off
     private fun animateScrubber(progress: Int, speed: Float) {
@@ -80,6 +94,18 @@ class EpisodePlayerFragment: Fragment() {
         layout.seekBar.max = episodeDuration.toInt()
     }
 
+    // Hides everything on the screen except the video controls
+    // The video playback should use the maximum size at the screen
+    private fun setupVideoUI() {
+        layout.episodeImageView.visibility = View.INVISIBLE
+        layout.headerView.visibility = View.INVISIBLE
+        // Gets the activity ti hide its action bar
+        val activity = activity as AppCompatActivity
+        activity.supportActionBar?.hide()
+
+        layout.playerControls.setBackgroundColor(Color.argb(255/2,0,0,0))
+    }
+
     private fun handleStateChange(state: Int, position: Long, speed: Float) {
         // Stop the animation when the playback stops
         progressAnimator?.let { animator ->
@@ -100,6 +126,9 @@ class EpisodePlayerFragment: Fragment() {
 
         // If it is playing, create the animation
         if (isPlaying) {
+            if (isVideo) {
+                setupVideoUI()
+            }
             animateScrubber(progress, speed)
         }
     }
@@ -127,6 +156,23 @@ class EpisodePlayerFragment: Fragment() {
 
         }
 
+    }
+
+    private fun updateControlsFromController() {
+        val fragmentActivity = activity as FragmentActivity
+        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+
+        if (controller != null) {
+            val metadata = controller.metadata
+            if (metadata != null) {
+                handleStateChange(
+                    controller.playbackState.state,
+                    controller.playbackState.position,
+                    playerSpeed
+                )
+                updateControlsFromMetadata(controller.metadata)
+            }
+        }
     }
 
     // Handle connection messages
@@ -191,7 +237,19 @@ class EpisodePlayerFragment: Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        initializeMediaBrowser()
+        // If the SDK version supports video playing and
+        // isVideo is not equal to null, so there is a video to play
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            isVideo = podcastViewModel.activeEpisodeViewData?.isVideo ?: false
+        } else {
+            isVideo = false
+        }
+
+        // Only initialize the media browser if there is no
+        // video to play
+        if (!isVideo) {
+            initializeMediaBrowser()
+        }
     }
 
     // Register controller to receive callbacks from the MediaSession
@@ -199,6 +257,7 @@ class EpisodePlayerFragment: Fragment() {
 
         val fragmentActivity = activity as FragmentActivity
         // Creates the MediaController and connects it to the MediaSession
+        // whose token was passed in
         val mediaController = MediaControllerCompat(fragmentActivity, token)
         // Links the UI control to the MediaController
         MediaControllerCompat.setMediaController(fragmentActivity,mediaController)
@@ -212,21 +271,26 @@ class EpisodePlayerFragment: Fragment() {
     // Connects the media browser
     override fun onStart() {
         super.onStart()
-        // If a configuration change occurs, the media browser remains connected
-        // but it is necessary to create the media controller again, if it is not
-        // null obviously
-        if (mediaBrowser.isConnected) {
-            val fragmentActivity = activity as FragmentActivity
-            if (MediaControllerCompat.getMediaController(fragmentActivity) == null) {
-                registerMediaController(mediaBrowser.sessionToken)
+
+        // The media browser logic is implemented if
+        // it was initialized before
+        if (!isVideo) {
+            // If a configuration change occurs, the media browser remains connected
+            // but it is necessary to create the media controller again, if it is not
+            // null obviously
+            if (mediaBrowser.isConnected) {
+                val fragmentActivity = activity as FragmentActivity
+                if (MediaControllerCompat.getMediaController(fragmentActivity) == null) {
+                    registerMediaController(mediaBrowser.sessionToken)
+                }
+                // Keeps the UI in sync if there is a screen rotation
+                updateControlsFromController()
+            } else {
+                // If not connected, connect
+                // It will register the media controller automatically
+                // by calling onConnected()
+                mediaBrowser.connect()
             }
-            // Keeps the UI in sync if there is a screen rotation
-            updateControlsFromController()
-        } else {
-            // If not connected, connect
-            // It will register the media controller automatically
-            // by calling onConnected()
-            mediaBrowser.connect()
         }
     }
 
@@ -244,6 +308,10 @@ class EpisodePlayerFragment: Fragment() {
 
     // Controls the start and stop playback
     private fun togglePlayPause() {
+        // If the button was tapped at least once,
+        // set this variable to true
+        playOnPrepare = true
+
         val fragmentActivity = activity as FragmentActivity
 
         val controller = MediaControllerCompat.getMediaController(fragmentActivity)
@@ -270,30 +338,118 @@ class EpisodePlayerFragment: Fragment() {
         }
     }
 
-    private fun changeSpeed() {
-        playerSpeed += 0.25f
+    // Make the video view match the size of the podcast video and keep
+    // the video aspect ratio intact
+    private fun setSurfaceSize() {
+        // Impossible without the media player
+        val mediaPlayer = mediaPlayer ?: return
 
-        if (playerSpeed > 2.0f) {
-            playerSpeed = 0.75f
+        // Video size
+        val videoWidth = mediaPlayer.videoWidth
+        val videoHeight = mediaPlayer.videoHeight
+
+        // Layout size
+        val parent = layout.videoSurfaceView.parent as View
+        val containerWidth = parent.width
+        val containerHeight = parent.height
+
+        // Ratio view
+        val layoutAspectRatio = containerWidth.toFloat() / containerHeight
+        // Ratio video
+        val videoAspectRatio = videoWidth.toFloat() / videoHeight
+
+        // View parameters
+        val layoutParams = layout.videoSurfaceView.layoutParams
+
+        if (videoAspectRatio > layoutAspectRatio) {
+            layoutParams.height = (containerWidth / videoAspectRatio).toInt()
+        } else {
+            layoutParams.width = (containerHeight * videoAspectRatio).toInt()
         }
 
-        val bundle = Bundle()
-        bundle.putFloat(CMD_EXTRA_SPEED, playerSpeed)
-
-        val fragmentActivity = activity as FragmentActivity
-        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
-        controller.sendCommand(CMD_CHANGE_SPEED, bundle, null)
-
-        val speedButtonText = "${playerSpeed}x"
-        layout.speedButton.text = speedButtonText
+        layout.videoSurfaceView.layoutParams = layoutParams
     }
 
-    private fun seekBy(seconds: Int) {
-        val fragmentActivity = activity as FragmentActivity
-        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
-        // The position should be passed to milliseconds
-        val newPosition = controller.playbackState.position + seconds * 1000
-        controller.transportControls.seekTo(newPosition)
+    private fun initializeMediaPlayer() {
+        if (mediaPlayer == null) {
+            mediaPlayer = MediaPlayer()
+            mediaPlayer?.let { mediaPlayer ->
+                mediaPlayer.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
+
+                // Data source of the episode media playback
+                mediaPlayer.setDataSource(podcastViewModel.activeEpisodeViewData?.mediaUrl)
+
+                // Registers a callback to be invoked when the media source is
+                // ready for playback
+                mediaPlayer.setOnPreparedListener {
+                    val fragmentActivity = activity as FragmentActivity
+                    mediaSession?.let { mediaSession ->
+                        // Activity is passed over here
+                        val episodeMediaCallback = PodplayMediaCallback(fragmentActivity, mediaSession)
+                        mediaSession.setCallback(episodeMediaCallback)
+                    }
+
+                    setSurfaceSize()
+
+                    // If the user has already tapped the play button,
+                    // then the video is started
+                    if (playOnPrepare) {
+                        togglePlayPause()
+                    }
+                }
+
+                // Prepares player for playback in the background
+                mediaPlayer.prepareAsync()
+            }
+
+        } else {
+            // If there is a screen rotation
+            // Then, adjust the screen again
+            setSurfaceSize()
+        }
+    }
+
+    // Initialize the video surface and call the initializeMediaPlayer method
+    private fun initializeVideoPlayer() {
+        // When the surface view is made visible,
+        // Android must prepare it for use
+        layout.videoSurfaceView.visibility = View.VISIBLE
+
+        // Control the surface characteristics
+        // This object is used to determine the surface availability
+        val surfaceHolder = layout.videoSurfaceView.holder
+
+        surfaceHolder.addCallback(
+            object : SurfaceHolder.Callback {
+
+                // The surface view is only available when this method is called
+                override fun surfaceCreated(holder: SurfaceHolder) {
+                    initializeMediaPlayer()
+                    // The surface is assigned as the display object for the
+                    // media player
+                    mediaPlayer?.setDisplay(holder)
+                }
+
+                override fun surfaceChanged(
+                    holder: SurfaceHolder,
+                    format: Int,
+                    width: Int,
+                    height: Int
+                ) {
+
+                }
+
+                override fun surfaceDestroyed(holder: SurfaceHolder) {
+
+                }
+
+            }
+        )
     }
 
     // Set up the data on screen
@@ -314,6 +470,50 @@ class EpisodePlayerFragment: Fragment() {
             .into(layout.episodeImageView)
 
         var speedButtonText = "${playerSpeed}x"
+        layout.speedButton.text = speedButtonText
+
+        mediaPlayer?.let {
+            updateControlsFromController()
+        }
+    }
+
+    // Initialize mediaSession to playback video podcast
+    private fun initializeMediaSession() {
+        if (mediaSession == null) {
+            mediaSession = MediaSessionCompat(activity as Context, "EpisodePlayerFragment")
+            mediaSession?.setMediaButtonReceiver(null)
+        }
+
+        // The session token need to be passed to the controller
+        // for the communication to happen
+        mediaSession?.let { mediaSession ->
+            registerMediaController(mediaSession.sessionToken)
+        }
+    }
+
+    private fun seekBy(seconds: Int) {
+        val fragmentActivity = activity as FragmentActivity
+        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+        // The position should be passed to milliseconds
+        val newPosition = controller.playbackState.position + seconds * 1000
+        controller.transportControls.seekTo(newPosition)
+    }
+
+    private fun changeSpeed() {
+        playerSpeed += 0.25f
+
+        if (playerSpeed > 2.0f) {
+            playerSpeed = 0.75f
+        }
+
+        val bundle = Bundle()
+        bundle.putFloat(CMD_EXTRA_SPEED, playerSpeed)
+
+        val fragmentActivity = activity as FragmentActivity
+        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+        controller.sendCommand(CMD_CHANGE_SPEED, bundle, null)
+
+        val speedButtonText = "${playerSpeed}x"
         layout.speedButton.text = speedButtonText
     }
 
@@ -375,32 +575,19 @@ class EpisodePlayerFragment: Fragment() {
         )
     }
 
+
     // Data must be hooked up after the view is created
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // I think the order is irrelevant here
         setupControls()
+        if (isVideo) {
+            initializeMediaSession()
+            initializeVideoPlayer()
+        }
         updateControls()
     }
-
-    private fun updateControlsFromController() {
-        val fragmentActivity = activity as FragmentActivity
-        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
-
-        if (controller != null) {
-            val metadata = controller.metadata
-            if (metadata != null) {
-                handleStateChange(
-                    controller.playbackState.state,
-                    controller.playbackState.position,
-                    playerSpeed
-                )
-                updateControlsFromMetadata(controller.metadata)
-            }
-        }
-    }
-
 
     override fun onStop() {
         super.onStop()
@@ -417,9 +604,18 @@ class EpisodePlayerFragment: Fragment() {
                     .unregisterCallback(mediaControllerCallback)
             }
         }
-        // MediaBrowser is disconnected
-        // I CREATED THIS LINE. MAYBE IT IS WRONG
-        // mediaBrowser.disconnect()
+
+        // Clears the display surface when the screen is rotated
+        if (isVideo) {
+            mediaPlayer?.setDisplay(null)
+        }
+
+        // Stops the playback when the fragment UI is exited
+        if (!fragmentActivity.isChangingConfigurations) {
+            // The media player will not be used no more
+            mediaPlayer?.release()
+            mediaPlayer = null
+        }
     }
 
     companion object {

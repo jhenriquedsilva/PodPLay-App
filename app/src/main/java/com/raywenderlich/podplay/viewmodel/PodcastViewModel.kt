@@ -30,6 +30,7 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
     private val _podcastLiveData = MutableLiveData<PodcastViewData?>()
     // LiveData is always within a ViewModel and is exposed to the UI controller
     val podcastLiveData: LiveData<PodcastViewData?> = _podcastLiveData
+    private var isVideo: Boolean = false
 
 
     suspend fun setActivePodcast(feedUrl: String): SearchViewModel.PodcastSummaryViewData? {
@@ -143,6 +144,10 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
      */
     private fun episodesToEpisodesView(episodes: List<Episode>): List<EpisodeViewData> {
         val episodesViewDataList = episodes.map { episode ->
+
+            // Checks mime type on each episode to see if it starts with "video"
+            val isVideo = episode.mimeType.startsWith("video")
+
             EpisodeViewData(
                 episode.guid,
                 episode.title,
@@ -150,7 +155,8 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
                 episode.mediaUrl,
                 episode.mimeType,
                 episode.releaseDate,
-                episode.duration
+                episode.duration,
+                isVideo
             )
         }
 
@@ -175,5 +181,6 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
         var mimeType: String = "", // Determines the type of file located at mediaUrl
         var releaseDate: String = "",
         var duration: String = "",
+        var isVideo: Boolean = false
     )
 }

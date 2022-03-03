@@ -41,6 +41,8 @@ class PodplayMediaCallback(
     private var mediaExtras: Bundle? = null
     // Used to store an audio focus request when running Android 8.0 ot higher
     private var focusRequest: AudioFocusRequest? = null
+    // It is set to true if the mediaPlayer is created by PodplayMediaCallback
+    private var mediaNeedsPrepare: Boolean = false
 
     // Makes sure that the app has audio focus
     private fun hasAudioFocus(): Boolean {
@@ -168,7 +170,7 @@ class PodplayMediaCallback(
                     mediaPlayer.reset()
                     // The data source should be set again
                     mediaUri?.let { mediaUri ->
-                        mediaPlayer.setDataSource(context, mediaUri)
+                        mediaPlayer.setDataSource(this.context, mediaUri)
                     }
                     mediaPlayer.prepare()
                     // Update the playbackParams again
@@ -237,6 +239,8 @@ class PodplayMediaCallback(
             mediaPlayer = MediaPlayer()
             // When the playback is finished, this code is executed
             mediaPlayer?.setOnCompletionListener { setState(PlaybackStateCompat.STATE_PAUSED) }
+
+            mediaNeedsPrepare = true
         }
     }
 
@@ -246,16 +250,18 @@ class PodplayMediaCallback(
             newMedia = false
             mediaPlayer?.let { mediaPlayer ->
                 mediaUri?.let { mediaUri ->
-                    // Back to uninitialized state
-                    mediaPlayer.reset()
-                    // The media that will be played
-                    mediaPlayer.setDataSource(context, mediaUri)
-                    // Puts media player on an initialized state
-                    // Blocks until media player is ready for playback
-                    mediaPlayer.prepare()
+                    if (mediaNeedsPrepare) {
+                        // Back to uninitialized state
+                        mediaPlayer.reset()
+                        // The media that will be played
+                        mediaPlayer.setDataSource(this.context, mediaUri)
+                        // Puts media player on an initialized state
+                        // Blocks until media player is ready for playback
+                        mediaPlayer.prepare()
+                    }
+
                     // Everytime the metadata changes,
                     // you should set it again to the media session
-
                     mediaExtras?.let { mediaExtras ->
                         // This metadata is used by the notification and the
                         // other media players to display details about the currently
